@@ -5,7 +5,7 @@ using SalesForecastSystem.Infrastructure.Data;
 namespace SalesForecastSystem.API.Controllers
 {
     [ApiController]
-    [Microsoft.AspNetCore.Authorization.Authorize(Roles = SalesForecastSystem.Core.Authorization.AppRoles.Admin)]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = SalesForecastSystem.Core.Helpers.RoleNames.Admin)]
     [Route("api/[controller]")]
     public class DatabaseController : ControllerBase
     {

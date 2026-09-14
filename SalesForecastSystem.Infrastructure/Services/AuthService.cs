@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using SalesForecastSystem.Core.DTOs.Auth;
 using SalesForecastSystem.Core.Interfaces.Services;
 using SalesForecastSystem.Infrastructure.Data;
-using SalesForecastSystem.Core.Authorization;
+using SalesForecastSystem.Core.Helpers;
 
 namespace SalesForecastSystem.Infrastructure.Services
 {
@@ -70,7 +70,7 @@ namespace SalesForecastSystem.Infrastructure.Services
             }
 
             // Chuẩn hóa tên vai trò để dùng khi phân quyền.
-            var role = AppRoles.Normalize(user.VaiTro.TenVaiTro);
+            var role = RoleNames.Normalize(user.VaiTro.TenVaiTro);
 
             var userInfo = new LoginUserResponse
             {

@@ -47,3 +47,40 @@ dotnet run --project SalesForecastSystem.API
 ```
 
 Kiểm tra `GET /api/Database/check`; đăng nhập qua `POST /api/auth/login`. Các endpoint và seeder này chỉ sử dụng hai bảng xác thực đã được ánh xạ trong EF. Các bảng nghiệp vụ mới cần bổ sung entity/configuration, DTO, service và controller khi phát triển chức năng tương ứng.
+
+## Xác thực, phân quyền và danh mục
+
+Các API đã hoàn thiện:
+
+| API | Quyền |
+|---|---|
+| `POST /api/auth/login` | Công khai; đăng nhập bằng email và mật khẩu BCrypt |
+| `POST /api/auth/logout` | Mọi tài khoản đã đăng nhập; thu hồi phiên hiện tại |
+| `GET /api/auth/me` | Mọi tài khoản đã đăng nhập |
+| `GET /api/danh-muc` | `Admin`, `QuanLyKho`, `NhanVienBanHang` |
+| `GET /api/danh-muc/{id}` | `Admin`, `QuanLyKho`, `NhanVienBanHang` |
+| `POST /api/danh-muc` | `Admin` |
+| `PUT /api/danh-muc/{id}` | `Admin` |
+| `DELETE /api/danh-muc/{id}` | `Admin` |
+
+Mỗi access token tương ứng một dòng trong `PhienDangNhap`. Sau khi logout, token đó trả `401`, kể cả sau khi API khởi động lại. Các phiên đăng nhập khác của cùng tài khoản vẫn còn hiệu lực. Token cũng bị từ chối nếu tài khoản/vai trò bị khóa hoặc vai trò của tài khoản đã thay đổi. Access token hết hạn sau 15 phút.
+
+Tên vai trò lưu trong CSDL được chuẩn hóa thành claim: `Admin`, `QuanLyKho`, `NhanVienBanHang`. Chính sách mặc định yêu cầu đăng nhập cho mọi endpoint không đánh dấu công khai; endpoint kiểm tra CSDL chỉ dành cho Admin.
+
+API danh mục trả:
+
+- `400` cho dữ liệu không hợp lệ;
+- `404` khi mã danh mục không tồn tại;
+- `409` khi tên bị trùng hoặc danh mục đang được sản phẩm sử dụng;
+- `401` khi chưa đăng nhập, token sai/hết hạn/đã thu hồi;
+- `403` khi đã đăng nhập nhưng vai trò thiếu quyền.
+
+Swagger hiển thị nút **Authorize**. Đăng nhập, sao chép `accessToken`, bấm **Authorize** và dán token trực tiếp (không thêm chữ `Bearer`).
+
+Chạy toàn bộ kiểm thử tích hợp:
+
+```powershell
+dotnet run --project tests/SalesForecastSystem.IntegrationChecks
+```
+
+Bộ kiểm thử tạo tài khoản và dữ liệu tạm với tên ngẫu nhiên, kiểm tra 69 trường hợp HTTP rồi xóa chúng. Có thể thêm `-- --swagger` để giữ API chạy phục vụ kiểm tra giao diện; tạo tệp `tests/swagger.stop` để dừng và dọn dữ liệu tạm.

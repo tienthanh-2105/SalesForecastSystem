@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using SalesForecastSystem.Core.Authorization;
+using SalesForecastSystem.Core.Helpers;
 using SalesForecastSystem.Core.DTOs.DanhMuc;
 using SalesForecastSystem.Infrastructure.Data;
 using SalesForecastSystem.Infrastructure.Entities;
@@ -11,7 +11,7 @@ namespace SalesForecastSystem.API.Controllers;
 
 [ApiController]
 [Route("api/danh-muc")]
-[Authorize(Roles = AppRoles.All)]
+[Authorize(Roles = RoleNames.All)]
 public class DanhMucController(AppDbContext context) : ControllerBase
 {
     [HttpGet]
@@ -34,7 +34,7 @@ public class DanhMucController(AppDbContext context) : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Roles = RoleNames.Admin)]
     [ProducesResponseType(typeof(DanhMucResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -51,7 +51,7 @@ public class DanhMucController(AppDbContext context) : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Roles = RoleNames.Admin)]
     [ProducesResponseType(typeof(DanhMucResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -70,7 +70,7 @@ public class DanhMucController(AppDbContext context) : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Roles = RoleNames.Admin)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]

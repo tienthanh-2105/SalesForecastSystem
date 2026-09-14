@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using SalesForecastSystem.Core.Authorization;
+using SalesForecastSystem.Core.Helpers;
 using SalesForecastSystem.Infrastructure.Data;
 
 namespace SalesForecastSystem.API.Services;
@@ -24,7 +24,7 @@ public class SessionJwtEvents(AppDbContext context) : JwtBearerEvents
 
         if (session is null || session.ThuHoiLuc is not null || session.HetHanLuc <= DateTime.UtcNow
             || session.NguoiDung.TrangThai != "Hoạt động" || !session.NguoiDung.VaiTro.TrangThai
-            || AppRoles.Normalize(session.NguoiDung.VaiTro.TenVaiTro) != principal!.FindFirst("role")?.Value)
+            || RoleNames.Normalize(session.NguoiDung.VaiTro.TenVaiTro) != principal!.FindFirst("role")?.Value)
         {
             validation.Fail("Phiên đã hết hạn, bị thu hồi hoặc quyền tài khoản đã thay đổi.");
         }

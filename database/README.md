@@ -33,6 +33,7 @@ Thiết kế nền tảng theo phạm vi đã chọn: bán hàng, kho và dự b
 | Dự báo | LanChayDuBao | Kho, khoảng dữ liệu huấn luyện, khoảng dự báo, trạng thái, MAE/RMSE |
 | Dự báo | KetQuaDuBao | Số lượng và doanh thu dự báo theo sản phẩm/ngày/lần chạy |
 | Kỹ thuật | SchemaVersion | Phiên bản lược đồ đã triển khai |
+| Xác thực | PhienDangNhap | Phiên JWT và thời điểm thu hồi khi đăng xuất |
 
 ## Quan hệ
 

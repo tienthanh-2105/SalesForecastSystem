@@ -135,6 +135,16 @@ try
             await Check("delete forbidden " + role, HttpMethod.Delete, "/api/danh-muc/0", 403, tokens[role]);
         }
     }
+    foreach (var (role, token) in tokens)
+    {
+        foreach (var target in new[] { "Admin", "QuanLyKho", "NhanVienBanHang" })
+        {
+            var route = target switch { "Admin" => "admin", "QuanLyKho" => "warehouse", _ => "sales" };
+            await Check($"access {role} -> {target}", HttpMethod.Get, "/api/access-check/" + route,
+                role == target ? 200 : 403, token);
+        }
+    }
+    await Check("anonymous role endpoint", HttpMethod.Get, "/api/access-check/admin", 401);
     var admin = tokens["Admin"];
     await Check("invalid token", HttpMethod.Get, "/api/danh-muc", 401, "invalid");
     await Check("expired signed token", HttpMethod.Get, "/api/danh-muc", 401, SignedToken(admin, key, "IntegrationChecks", DateTime.UtcNow.AddMinutes(-1)));
