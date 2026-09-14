@@ -2,6 +2,9 @@
 
 Backend ASP.NET Core 8 cho hệ thống bán hàng và dự báo doanh số, sử dụng SQL Server và Entity Framework Core 8.
 
+- [Hướng dẫn chạy và demo](docs/HuongDanChay.md)
+- [Báo cáo công việc ngày 14/09/2026](docs/BaoCaoNgay-2026-09-14.md)
+
 ## Phân tích hiện trạng
 
 - `SalesForecastSystem.API`: HTTP API, đăng nhập JWT, Swagger, kiểm tra kết nối CSDL.
