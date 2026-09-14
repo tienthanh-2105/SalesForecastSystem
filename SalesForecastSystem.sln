@@ -1,0 +1,66 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35527.113 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SalesForecastSystem.API", "SalesForecastSystem.API\SalesForecastSystem.API.csproj", "{C38AB355-24C0-4673-B84A-19D63CF202A9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SalesForecastSystem.Core", "SalesForecastSystem.Core\SalesForecastSystem.Core.csproj", "{C01C0D9E-D0AA-4736-AE6F-E3538667FA64}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SalesForecastSystem.Infrastructure", "SalesForecastSystem.Infrastructure\SalesForecastSystem.Infrastructure.csproj", "{BE255D36-F195-4566-999C-7FC98BB397E0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SalesForecastSystem.ML", "SalesForecastSystem.ML", "{3EA31AFF-CF7A-431B-8F2E-7F0BBFD77D5A}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+		requirements.txt = requirements.txt
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "app", "app", "{26FF79AF-EA52-4D20-B809-F53033D9FC8E}"
+	ProjectSection(SolutionItems) = preProject
+		main.py = main.py
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "preprocessing", "preprocessing", "{879CF016-67C4-4EF4-81C3-DCB87789203D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "training", "training", "{F58BC7BF-0CD8-4F6D-A572-32178B10B35B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "prediction", "prediction", "{34C6E302-7AC4-4E3A-80E8-D5460DDAF97D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "data", "data", "{6B31F8A7-1C54-458C-9114-3DCBD2C6CB8C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "models", "models", "{8DB37657-84BB-4C45-A5BB-590040B345F2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{B4414DEE-FE13-45B1-BF3A-BEFFCB20DCE3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C38AB355-24C0-4673-B84A-19D63CF202A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C38AB355-24C0-4673-B84A-19D63CF202A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C38AB355-24C0-4673-B84A-19D63CF202A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C38AB355-24C0-4673-B84A-19D63CF202A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C01C0D9E-D0AA-4736-AE6F-E3538667FA64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C01C0D9E-D0AA-4736-AE6F-E3538667FA64}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C01C0D9E-D0AA-4736-AE6F-E3538667FA64}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C01C0D9E-D0AA-4736-AE6F-E3538667FA64}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BE255D36-F195-4566-999C-7FC98BB397E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE255D36-F195-4566-999C-7FC98BB397E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE255D36-F195-4566-999C-7FC98BB397E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE255D36-F195-4566-999C-7FC98BB397E0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{26FF79AF-EA52-4D20-B809-F53033D9FC8E} = {3EA31AFF-CF7A-431B-8F2E-7F0BBFD77D5A}
+		{879CF016-67C4-4EF4-81C3-DCB87789203D} = {3EA31AFF-CF7A-431B-8F2E-7F0BBFD77D5A}
+		{F58BC7BF-0CD8-4F6D-A572-32178B10B35B} = {3EA31AFF-CF7A-431B-8F2E-7F0BBFD77D5A}
+		{34C6E302-7AC4-4E3A-80E8-D5460DDAF97D} = {3EA31AFF-CF7A-431B-8F2E-7F0BBFD77D5A}
+		{6B31F8A7-1C54-458C-9114-3DCBD2C6CB8C} = {3EA31AFF-CF7A-431B-8F2E-7F0BBFD77D5A}
+		{8DB37657-84BB-4C45-A5BB-590040B345F2} = {3EA31AFF-CF7A-431B-8F2E-7F0BBFD77D5A}
+		{B4414DEE-FE13-45B1-BF3A-BEFFCB20DCE3} = {3EA31AFF-CF7A-431B-8F2E-7F0BBFD77D5A}
+	EndGlobalSection
+EndGlobal
