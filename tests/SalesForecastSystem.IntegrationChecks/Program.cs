@@ -24,17 +24,27 @@ var apiLog = new List<string>();
 var baseUrl = "http://localhost:5187";
 using var client = new HttpClient { BaseAddress = new Uri(baseUrl) };
 Process? api = null;
+string? apiHostDirectory = null;
 var passed = 0;
 
 async Task StartApi()
 {
+    var sourceDirectory = Path.Combine(root, "SalesForecastSystem.API/bin/Debug/net8.0");
+    apiHostDirectory = Path.Combine(Path.GetTempPath(), "SalesForecastSystem.IntegrationChecks", Guid.NewGuid().ToString("N"));
+    foreach (var sourceFile in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
+    {
+        var destinationFile = Path.Combine(apiHostDirectory, Path.GetRelativePath(sourceDirectory, sourceFile));
+        Directory.CreateDirectory(Path.GetDirectoryName(destinationFile)!);
+        File.Copy(sourceFile, destinationFile);
+    }
+
     var start = new ProcessStartInfo("dotnet")
     {
-        WorkingDirectory = Path.Combine(root, "SalesForecastSystem.API"),
+        WorkingDirectory = apiHostDirectory,
         UseShellExecute = false, CreateNoWindow = true,
         RedirectStandardOutput = true, RedirectStandardError = true
     };
-    start.ArgumentList.Add(Path.Combine(root, "SalesForecastSystem.API/bin/Debug/net8.0/SalesForecastSystem.API.dll"));
+    start.ArgumentList.Add(Path.Combine(apiHostDirectory, "SalesForecastSystem.API.dll"));
     start.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
     start.Environment["ASPNETCORE_URLS"] = baseUrl;
     start.Environment["ConnectionStrings__DefaultConnection"] = connection;
@@ -68,6 +78,26 @@ async Task StopApi()
     {
         if (!api.HasExited) { api.Kill(entireProcessTree: true); await api.WaitForExitAsync(); }
         api.Dispose(); api = null;
+    }
+    if (apiHostDirectory is not null && Directory.Exists(apiHostDirectory))
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                Directory.Delete(apiHostDirectory, recursive: true);
+                break;
+            }
+            catch (UnauthorizedAccessException) when (attempt < 20)
+            {
+                await Task.Delay(100);
+            }
+            catch (IOException) when (attempt < 20)
+            {
+                await Task.Delay(100);
+            }
+        }
+        apiHostDirectory = null;
     }
 }
 
