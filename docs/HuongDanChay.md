@@ -154,11 +154,11 @@ dotnet run --project tests/SalesForecastSystem.IntegrationChecks
 Kết quả đúng:
 
 ```text
-ALL 69 HTTP CHECKS PASSED; Swagger security schema verified.
+ALL 133 HTTP CHECKS PASSED; Swagger security schema verified.
 Temporary test data cleaned up.
 ```
 
-Bộ kiểm thử tự tạo tài khoản/danh mục tạm và tự xóa sau khi chạy xong.
+Bộ kiểm thử tự tạo tài khoản/danh mục/sản phẩm tạm và tự xóa sau khi chạy xong.
 
 ## 12. Lỗi thường gặp
 
@@ -183,3 +183,42 @@ Nếu ứng dụng báo `Chưa cấu hình Jwt:Key`, thực hiện lại bước
 - Token có thể đã hết hạn sau 15 phút.
 - Token có thể đã bị thu hồi khi đăng xuất.
 - Đăng nhập lại và cập nhật token trong nút **Authorize**.
+
+## 13. API sản phẩm
+
+API dùng bảng `dbo.SanPham` hiện có, không cần bổ sung cột hoặc chạy migration.
+Mọi vai trò đã đăng nhập được xem; chỉ Admin được thêm, sửa, xóa, giống API danh mục.
+
+| Phương thức | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| GET | `/api/san-pham` | Danh sách sản phẩm |
+| GET | `/api/san-pham/{id}` | Chi tiết sản phẩm |
+| POST | `/api/san-pham` | Thêm sản phẩm, trả 201 |
+| PUT | `/api/san-pham/{id}` | Sửa sản phẩm, trả 200 |
+| DELETE | `/api/san-pham/{id}` | Xóa sản phẩm chưa được sử dụng, trả 200 |
+| GET | `/api/san-pham/{id}/ton-kho` | Tổng số lượng tồn trên tất cả kho |
+
+Ví dụ nội dung POST/PUT (thay `maDanhMuc` bằng mã danh mục đang tồn tại):
+
+```json
+{
+  "maDanhMuc": 1,
+  "sku": "SP-001",
+  "tenSanPham": "Bàn phím",
+  "donViTinh": "Cái",
+  "giaBan": 250000,
+  "trangThai": true
+}
+```
+
+Quy tắc kiểm tra:
+
+- `MaSanPham` là khóa tự tăng; mã người dùng nhập và cần chống trùng là `sku`.
+- SKU bắt buộc, tối đa 50 ký tự ASCII in được; tên tối đa 200 ký tự, đơn vị tính tối đa 30 ký tự. Các trường chuỗi bắt buộc không được chỉ chứa khoảng trắng.
+- Bỏ khoảng trắng đầu/cuối trước khi lưu. SKU trùng trả `409`, kể cả khi sửa sang SKU của sản phẩm khác. So sánh chữ hoa/thường theo collation của SQL Server (cơ sở dữ liệu hiện tại không phân biệt hoa/thường).
+- Danh mục phải tồn tại, nếu sai trả `400`.
+- Giá bán bắt buộc, từ `0` đến `9999999999999999.99`, tối đa 2 chữ số thập phân; thiếu, âm hoặc vượt giới hạn trả `400`. Giá bằng 0 được chấp nhận theo ràng buộc cơ sở dữ liệu hiện có.
+- Tồn kho được tính từ giao dịch phiếu nhập/bán. Không gửi `soLuong` hoặc `soLuongTon` trong POST/PUT: số âm, số lẻ, null hoặc sai kiểu trả `400`; số nguyên không âm cũng trả `400` kèm thông báo cần điều chỉnh qua phiếu nhập/bán. API sản phẩm không ghi đè tồn kho.
+- Sản phẩm chưa có giao dịch có tồn kho bằng 0. Dữ liệu trả về từ API tồn kho có dạng `{"maSanPham": 1, "soLuongTon": 0}`.
+- Mã sản phẩm không tồn tại trả `404`. Xóa sản phẩm đã được sử dụng hoặc gặp thay đổi đồng thời trả `409`.
+- Lỗi dữ liệu trả `ValidationProblemDetails` với trường `errors`; lỗi trùng/xung đột trả `ProblemDetails` với trường `title`.

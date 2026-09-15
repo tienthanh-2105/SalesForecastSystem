@@ -20,6 +20,7 @@ namespace SalesForecastSystem.Infrastructure.Data
         public DbSet<NguoiDung> NguoiDungs => Set<NguoiDung>();
         public DbSet<PhienDangNhap> PhienDangNhaps => Set<PhienDangNhap>();
         public DbSet<DanhMuc> DanhMucs => Set<DanhMuc>();
+        public DbSet<SanPham> SanPhams => Set<SanPham>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
