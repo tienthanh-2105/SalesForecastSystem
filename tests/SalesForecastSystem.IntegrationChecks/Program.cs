@@ -81,6 +81,9 @@ async Task StopApi()
     }
     if (apiHostDirectory is not null && Directory.Exists(apiHostDirectory))
     {
+        var allowedRoot = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "SalesForecastSystem.IntegrationChecks")) + Path.DirectorySeparatorChar;
+        if (!Path.GetFullPath(apiHostDirectory).StartsWith(allowedRoot, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Test host cleanup path is outside the temporary test directory.");
         for (var attempt = 0; ; attempt++)
         {
             try
@@ -198,9 +201,64 @@ try
     await Check("delete missing", HttpMethod.Delete, "/api/danh-muc/0", 404, admin);
     var second = await Check("create second", HttpMethod.Post, "/api/danh-muc", 201, admin, new { tenDanhMuc = tag + "-second" });
     await Check("update duplicate", HttpMethod.Put, $"/api/danh-muc/{id}", 409, admin, new { tenDanhMuc = tag + "-second" });
+    object Product(string sku, decimal price = 1000m, int? category = null) =>
+        new { sku, tenSanPham = "  Sản phẩm thử  ", donViTinh = " Cái ", giaBan = price, maDanhMuc = category ?? id, trangThai = false };
+    await Check("product anonymous", HttpMethod.Get, "/api/san-pham", 401);
+    foreach (var (role, token) in tokens)
+    {
+        await Check("product list " + role, HttpMethod.Get, "/api/san-pham", 200, token);
+        if (role == "Admin") continue;
+        await Check("product create forbidden " + role, HttpMethod.Post, "/api/san-pham", 403, token, Product(tag));
+        await Check("product update forbidden " + role, HttpMethod.Put, "/api/san-pham/0", 403, token, Product(tag));
+        await Check("product delete forbidden " + role, HttpMethod.Delete, "/api/san-pham/0", 403, token);
+    }
+    var product = await Check("create product", HttpMethod.Post, "/api/san-pham", 201, admin, Product("  " + tag + "  "));
+    var productId = product.GetProperty("maSanPham").GetInt32();
+    if (product.GetProperty("sku").GetString() != tag || product.GetProperty("trangThai").GetBoolean()
+        || product.GetProperty("tenSanPham").GetString() != "Sản phẩm thử" || product.GetProperty("donViTinh").GetString() != "Cái")
+        throw new Exception("Product normalization/status failed.");
+    foreach (var (role, token) in tokens)
+    {
+        await Check("product detail " + role, HttpMethod.Get, $"/api/san-pham/{productId}", 200, token);
+        var stock = await Check("product stock " + role, HttpMethod.Get, $"/api/san-pham/{productId}/ton-kho", 200, token);
+        if (stock.GetProperty("soLuongTon").GetInt64() != 0) throw new Exception("New product stock must be zero.");
+    }
+    await Check("duplicate SKU case and spaces", HttpMethod.Post, "/api/san-pham", 409, admin, Product(" " + tag.ToUpperInvariant() + " "));
+    await Check("empty SKU", HttpMethod.Post, "/api/san-pham", 400, admin, Product(" "));
+    await Check("long SKU", HttpMethod.Post, "/api/san-pham", 400, admin, Product(new string('a', 51)));
+    await Check("missing category", HttpMethod.Post, "/api/san-pham", 400, admin, Product(tag, category: int.MaxValue));
+    foreach (var price in new[] { -1m, 1.001m, 10000000000000000m })
+    {
+        await Check("invalid create price " + price, HttpMethod.Post, "/api/san-pham", 400, admin, Product(tag, price));
+        await Check("invalid update price " + price, HttpMethod.Put, $"/api/san-pham/{productId}", 400, admin, Product(tag, price));
+    }
+    await Check("missing price", HttpMethod.Post, "/api/san-pham", 400, admin,
+        new { sku = tag, tenSanPham = "Test", donViTinh = "Cái", maDanhMuc = id });
+    foreach (var quantity in new object?[] { -1, 1.5, "abc", null, 0, 10 })
+    {
+        foreach (var field in new[] { "soLuong", "soLuongTon" })
+        {
+            var body = new Dictionary<string, object?> { ["sku"] = tag, ["tenSanPham"] = "Test", ["donViTinh"] = "Cái", ["maDanhMuc"] = id, ["giaBan"] = 1000, [field] = quantity };
+            await Check($"create stock edit {field} {quantity}", HttpMethod.Post, "/api/san-pham", 400, admin, body);
+            await Check($"update stock edit {field} {quantity}", HttpMethod.Put, $"/api/san-pham/{productId}", 400, admin, body);
+        }
+    }
+    var unchanged = await Check("invalid updates do not persist", HttpMethod.Get, $"/api/san-pham/{productId}", 200, admin);
+    if (unchanged.GetProperty("giaBan").GetDecimal() != 1000m) throw new Exception("Invalid price persisted.");
+    await Check("update same SKU zero price", HttpMethod.Put, $"/api/san-pham/{productId}", 200, admin, Product(tag, 0));
+    var otherProduct = await Check("second product max price", HttpMethod.Post, "/api/san-pham", 201, admin, Product(tag + "-p2", 9999999999999999.99m));
+    await Check("update duplicate SKU", HttpMethod.Put, $"/api/san-pham/{productId}", 409, admin, Product(tag + "-p2"));
+    await Check("product missing detail", HttpMethod.Get, "/api/san-pham/0", 404, admin);
+    await Check("product missing stock", HttpMethod.Get, "/api/san-pham/0/ton-kho", 404, admin);
+    await Check("product missing update", HttpMethod.Put, "/api/san-pham/0", 404, admin, Product(tag));
+    await Check("product missing delete", HttpMethod.Delete, "/api/san-pham/0", 404, admin);
+    await Check("category with API product", HttpMethod.Delete, $"/api/danh-muc/{id}", 409, admin);
+    await Check("delete product", HttpMethod.Delete, $"/api/san-pham/{productId}", 200, admin);
+    await Check("product deleted", HttpMethod.Get, $"/api/san-pham/{productId}", 404, admin);
+    await Check("delete second product", HttpMethod.Delete, $"/api/san-pham/{otherProduct.GetProperty("maSanPham").GetInt32()}", 200, admin);
     await db.Database.ExecuteSqlInterpolatedAsync($"INSERT dbo.SanPham(MaDanhMuc, SKU, TenSanPham, DonViTinh, GiaBan) VALUES ({id}, {tag}, N'Kiểm thử', N'Cái', 1000)");
     await Check("delete category in use", HttpMethod.Delete, $"/api/danh-muc/{id}", 409, admin);
-    await db.Database.ExecuteSqlInterpolatedAsync($"DELETE dbo.SanPham WHERE SKU = {tag}");
+    await db.SanPhams.Where(x => x.SKU.StartsWith(tag)).ExecuteDeleteAsync();
     await Check("delete category", HttpMethod.Delete, $"/api/danh-muc/{id}", 200, admin);
     await Check("deleted detail", HttpMethod.Get, $"/api/danh-muc/{id}", 404, admin);
     await Check("delete second", HttpMethod.Delete, $"/api/danh-muc/{second.GetProperty("maDanhMuc").GetInt32()}", 200, admin);
@@ -244,7 +302,7 @@ finally
 {
     await StopApi();
     var ids = accounts.Values.Where(x => x.MaNgDung > 0).Select(x => x.MaNgDung).ToArray();
-    await db.Database.ExecuteSqlInterpolatedAsync($"DELETE dbo.SanPham WHERE SKU = {tag}");
+    await db.SanPhams.Where(x => x.SKU.StartsWith(tag)).ExecuteDeleteAsync();
     await db.DanhMucs.Where(x => x.TenDanhMuc.StartsWith(tag)).ExecuteDeleteAsync();
     await db.PhienDangNhaps.Where(x => ids.Contains(x.MaNgDung)).ExecuteDeleteAsync();
     await db.NguoiDungs.Where(x => ids.Contains(x.MaNgDung)).ExecuteDeleteAsync();
