@@ -1,24 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace SalesForecastSystem.Core.DTOs.Auth;
 
-namespace SalesForecastSystem.Core.DTOs.Auth
+public sealed class LoginResponse
 {
-    public class LoginResponse
-    {
-        public string AccessToken { get; set; } = string.Empty;
-        public string TokenType { get; set; } = "Bearer";
-        public DateTime ExpiresAt { get; set; }
-        public LoginUserResponse User { get; set; } = new();
-    }
+    public string AccessToken { get; set; } = string.Empty;
+    public string TokenType { get; set; } = "Bearer";
+    public DateTime ExpiresAt { get; set; }
+    public LoginUserResponse User { get; set; } = new();
+}
 
-    public class LoginUserResponse
-    {
-        public int MaNgDung { get; set; } 
-        public string HoTen { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string VaiTro { get; set; } = string.Empty;
-    }
+public sealed class LoginUserResponse
+{
+    public int UserId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
 }

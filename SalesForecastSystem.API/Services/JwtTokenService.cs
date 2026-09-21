@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -8,82 +8,62 @@ using SalesForecastSystem.Core.Interfaces.Services;
 using SalesForecastSystem.Infrastructure.Data;
 using SalesForecastSystem.Infrastructure.Entities;
 
-namespace SalesForecastSystem.API.Services
+namespace SalesForecastSystem.API.Services;
+
+public sealed class JwtTokenService(
+    IConfiguration configuration,
+    AppDbContext context) : ITokenService
 {
-    public class JwtTokenService : ITokenService
+    public async Task<LoginResponse> CreateAccessTokenAsync(
+        LoginUserResponse user,
+        CancellationToken cancellationToken = default)
     {
-        private readonly IConfiguration _configuration;
-        private readonly AppDbContext _context;
+        var now = DateTime.UtcNow;
+        var expiresAt = now.AddMinutes(15);
+        var sessionId = Guid.NewGuid();
 
-        public JwtTokenService(IConfiguration configuration, AppDbContext context)
+        var claims = new[]
         {
-            _configuration = configuration;
-            _context = context;
-        }
-
-        public async Task<LoginResponse> CreateAccessTokenAsync(LoginUserResponse user, CancellationToken cancellationToken = default)
-        {
-            var now = DateTime.UtcNow;
-            var expiresAt = now.AddMinutes(15);
-            var sessionId = Guid.NewGuid();
-
-            var claims = new Claim[]
-            {
-            new Claim(
-                "sub",
-                user.MaNgDung.ToString(CultureInfo.InvariantCulture)),
-
+            new Claim("sub", user.UserId.ToString(CultureInfo.InvariantCulture)),
             new Claim("jti", sessionId.ToString()),
             new Claim("email", user.Email),
-            new Claim("name", user.HoTen),
-            new Claim("role", user.VaiTro)
-            };
+            new Claim("name", user.FullName),
+            new Claim("role", user.Role)
+        };
 
-            var jwtKey = _configuration["Jwt:Key"]
-                ?? throw new InvalidOperationException(
-                    "Chưa cấu hình Jwt:Key.");
+        var signingKey = GetRequiredSetting("Jwt:Key");
+        var issuer = GetRequiredSetting("Jwt:Issuer");
+        var audience = GetRequiredSetting("Jwt:Audience");
+        var credentials = new SigningCredentials(
+            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
+            SecurityAlgorithms.HmacSha256);
 
-            var issuer = _configuration["Jwt:Issuer"]
-                ?? throw new InvalidOperationException(
-                    "Chưa cấu hình Jwt:Issuer.");
+        var token = new JwtSecurityToken(
+            issuer,
+            audience,
+            claims,
+            now,
+            expiresAt,
+            credentials);
 
-            var audience = _configuration["Jwt:Audience"]
-                ?? throw new InvalidOperationException(
-                    "Chưa cấu hình Jwt:Audience.");
+        context.LoginSessions.Add(new LoginSession
+        {
+            SessionId = sessionId,
+            UserId = user.UserId,
+            CreatedAt = now,
+            ExpiresAt = expiresAt
+        });
+        await context.SaveChangesAsync(cancellationToken);
 
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtKey));
-
-            var credentials = new SigningCredentials(
-                key,
-                SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: issuer,
-                audience: audience,
-                claims: claims,
-                notBefore: now,
-                expires: expiresAt,
-                signingCredentials: credentials);
-
-            _context.PhienDangNhaps.Add(new PhienDangNhap
-            {
-                MaPhien = sessionId,
-                MaNgDung = user.MaNgDung,
-                NgayTao = now,
-                HetHanLuc = expiresAt
-            });
-            await _context.SaveChangesAsync(cancellationToken);
-
-            return new LoginResponse
-            {
-                AccessToken = new JwtSecurityTokenHandler()
-                    .WriteToken(token),
-
-                TokenType = "Bearer",
-                ExpiresAt = expiresAt,
-                User = user
-            };
-        }
+        return new LoginResponse
+        {
+            AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
+            TokenType = "Bearer",
+            ExpiresAt = expiresAt,
+            User = user
+        };
     }
+
+    private string GetRequiredSetting(string key) =>
+        configuration[key] ?? throw new InvalidOperationException($"Missing configuration value: {key}.");
 }

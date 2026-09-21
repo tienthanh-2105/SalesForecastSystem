@@ -24,7 +24,7 @@ namespace SalesForecastSystem.API.Controllers
         }
 
         [HttpGet("admin")]
-        public async Task<IActionResult> CheckAdmin()
+        public async Task<IActionResult> GetSeedAdminAsync()
         {
             if (!_environment.IsDevelopment())
             {
@@ -43,16 +43,16 @@ namespace SalesForecastSystem.API.Controllers
 
             email = email.Trim().ToLowerInvariant();
 
-            var admin = await _context.NguoiDungs
+            var admin = await _context.Users
                 .AsNoTracking()
                 .Where(x => x.Email == email)
                 .Select(x => new
                 {
-                    x.MaNgDung,
-                    x.HoTen,
+                    x.UserId,
+                    x.FullName,
                     x.Email,
-                    TenVaiTro = x.VaiTro.TenVaiTro,
-                    x.TrangThai
+                    RoleName = x.Role.Name,
+                    x.Status
                 })
                 .SingleOrDefaultAsync();
 

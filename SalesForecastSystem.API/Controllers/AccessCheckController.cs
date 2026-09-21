@@ -10,7 +10,7 @@ namespace SalesForecastSystem.API.Controllers
     {
         [HttpGet("admin")]
         [Authorize(Roles = RoleNames.Admin)]
-        public IActionResult Admin()
+        public IActionResult CheckAdminAccess()
         {
             return Ok(new
             {
@@ -19,8 +19,8 @@ namespace SalesForecastSystem.API.Controllers
         }
 
         [HttpGet("warehouse")]
-        [Authorize(Roles = RoleNames.QuanLyKho)]
-        public IActionResult Warehouse()
+        [Authorize(Roles = RoleNames.WarehouseManager)]
+        public IActionResult CheckWarehouseAccess()
         {
             return Ok(new
             {
@@ -29,8 +29,8 @@ namespace SalesForecastSystem.API.Controllers
         }
 
         [HttpGet("sales")]
-        [Authorize(Roles = RoleNames.NhanVienBanHang)]
-        public IActionResult Sales()
+        [Authorize(Roles = RoleNames.SalesStaff)]
+        public IActionResult CheckSalesAccess()
         {
             return Ok(new
             {

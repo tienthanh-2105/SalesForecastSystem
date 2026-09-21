@@ -1,73 +1,66 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using SalesForecastSystem.Core.Helpers;
 using SalesForecastSystem.Infrastructure.Data;
 using SalesForecastSystem.Infrastructure.Entities;
 
-namespace SalesForecastSystem.Infrastructure.Seeders
+namespace SalesForecastSystem.Infrastructure.Seeders;
+
+public static class DataSeeder
 {
-    public static class DataSeeder
+    public static async Task SeedAdminAsync(
+        AppDbContext context,
+        string email,
+        string password,
+        CancellationToken cancellationToken = default)
     {
-        public static async Task SeedAdminAsync(
-            AppDbContext context,
-            string email,
-            string password)
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        if (await context.Users.AnyAsync(user => user.Email == normalizedEmail, cancellationToken))
         {
-            email = email.Trim().ToLowerInvariant();
+            return;
+        }
 
-            // Không tạo lại hoặc đổi mật khẩu tài khoản đã có.
-            if (await context.NguoiDungs.AnyAsync(x => x.Email == email))
+        ValidateAdminPassword(password);
+
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        var adminRole = await context.Roles
+            .SingleOrDefaultAsync(role => role.Name == RoleNames.Admin, cancellationToken);
+
+        if (adminRole is null)
+        {
+            adminRole = new Role
             {
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(password)
-                || password == "THAY_BANG_MAT_KHAU_RIENG"
-                || password.Length < 12
-                || System.Text.Encoding.UTF8.GetByteCount(password) > 72)
-            {
-                throw new InvalidOperationException(
-                    "Hãy đặt mật khẩu Admin riêng, ít nhất 12 ký tự " +
-                    "và không quá 72 byte UTF-8.");
-            }
-
-            using var transaction =
-                await context.Database.BeginTransactionAsync();
-
-            var vaiTro = await context.VaiTros
-                .SingleOrDefaultAsync(x => x.TenVaiTro == "Admin");
-
-            if (vaiTro is null)
-            {
-                vaiTro = new VaiTro
-                {
-                    TenVaiTro = "Admin",
-                    MoTa = "Quản trị hệ thống",
-                    TrangThai = true,
-                    NgayTao = DateTime.Now
-                };
-
-                context.VaiTros.Add(vaiTro);
-            }
-
-            var admin = new NguoiDung
-            {
-                VaiTro = vaiTro,
-                HoTen = "Quản trị viên",
-                Email = email,
-                MatKhau = BCrypt.Net.BCrypt.HashPassword(
-                    password, workFactor: 12),
-                TrangThai = "Hoạt động",
-                NgayTao = DateTime.Now
+                Name = RoleNames.Admin,
+                Description = "System administrator",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
             };
+            context.Roles.Add(adminRole);
+        }
 
-            context.NguoiDungs.Add(admin);
+        context.Users.Add(new User
+        {
+            Role = adminRole,
+            FullName = "Administrator",
+            Email = normalizedEmail,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12),
+            Status = UserStatuses.Active,
+            CreatedAt = DateTime.UtcNow
+        });
 
-            await context.SaveChangesAsync();
-            await transaction.CommitAsync();
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    private static void ValidateAdminPassword(string password)
+    {
+        if (string.IsNullOrWhiteSpace(password) ||
+            password == "THAY_BANG_MAT_KHAU_RIENG" ||
+            password.Length < 12 ||
+            Encoding.UTF8.GetByteCount(password) > 72)
+        {
+            throw new InvalidOperationException(
+                "Admin password must contain at least 12 characters and no more than 72 UTF-8 bytes.");
         }
     }
 }

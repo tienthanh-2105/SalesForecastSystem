@@ -1,23 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace SalesForecastSystem.Core.Helpers;
 
-namespace SalesForecastSystem.Core.Helpers
+public static class RoleNames
 {
-    public static class RoleNames
-    {
-        public const string Admin = "Admin";
-        public const string QuanLyKho = "QuanLyKho";
-        public const string NhanVienBanHang = "NhanVienBanHang";
-        public const string All = Admin + "," + QuanLyKho + "," + NhanVienBanHang;
-
-        public static string Normalize(string role) => role switch
-        {
-            "Quản lý kho" => QuanLyKho,
-            "Nhân viên bán hàng" => NhanVienBanHang,
-            _ => role
-        };
-    }
+    public const string Admin = "Admin";
+    public const string WarehouseManager = "WarehouseManager";
+    public const string SalesStaff = "SalesStaff";
+    public const string ProductManagers = Admin + "," + WarehouseManager;
+    public const string All = Admin + "," + WarehouseManager + "," + SalesStaff;
+    public static readonly string[] Values = [Admin, WarehouseManager, SalesStaff];
 }

@@ -17,7 +17,7 @@ namespace SalesForecastSystem.API.Controllers
         }
 
         [HttpGet("check")]
-        public async Task<IActionResult> CheckConnection()
+        public async Task<IActionResult> CheckConnectionAsync()
         {
             bool canConnect = await _context.Database.CanConnectAsync();
 

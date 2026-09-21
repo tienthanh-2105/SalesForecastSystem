@@ -1,81 +1,59 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
+using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using SalesForecastSystem.Core.DTOs.Auth;
 using SalesForecastSystem.Core.Interfaces.Services;
-using SalesForecastSystem.Infrastructure.Data;
 
-namespace SalesForecastSystem.API.Controllers
+namespace SalesForecastSystem.API.Controllers;
+
+[ApiController]
+[Route("api/auth")]
+public sealed class AuthController(
+    IAuthService authService,
+    ISessionService sessionService) : ControllerBase
 {
-    [ApiController]
-    [Route("api/auth")]
-    public class AuthController : ControllerBase
+    [AllowAnonymous]
+    [HttpPost("login")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> LoginAsync(
+        LoginRequest request,
+        CancellationToken cancellationToken)
     {
-        private readonly IAuthService _authService;
-        private readonly AppDbContext _context;
-
-        public AuthController(IAuthService authService, AppDbContext context)
-        {
-            _authService = authService;
-            _context = context;
-        }
-
-        [AllowAnonymous]
-        [HttpPost("login")]
-        [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> Login(
-            LoginRequest request,
-            CancellationToken cancellationToken)
-        {
-            Response.Headers["Cache-Control"] = "no-store";
-
-            var result = await _authService.LoginAsync(
-                request,
-                cancellationToken);
-
-            if (result is null)
-            {
-                return Unauthorized(new
-                {
-                    message = "Thông tin đăng nhập không hợp lệ."
-                });
-            }
-
-            return Ok(result);
-        }
-
-        [Authorize]
-        [HttpPost("logout")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> Logout(CancellationToken cancellationToken)
-        {
-            var sessionId = Guid.Parse(User.FindFirst("jti")!.Value);
-            var userId = int.Parse(User.FindFirst("sub")!.Value);
-            await _context.PhienDangNhaps
-                .Where(x => x.MaPhien == sessionId && x.MaNgDung == userId && x.ThuHoiLuc == null)
-                .ExecuteUpdateAsync(update => update.SetProperty(x => x.ThuHoiLuc, DateTime.UtcNow), cancellationToken);
-            Response.Headers["Cache-Control"] = "no-store";
-            return Ok(new { message = "Đăng xuất thành công." });
-        }
-
-        [Authorize]
-        [HttpGet("me")]
-        public IActionResult Me()
-        {
-            Response.Headers["Cache-Control"] = "no-store";
-            return Ok(new
-            {
-                maNgDung = User.FindFirst("sub")?.Value,
-                email = User.FindFirst("email")?.Value,
-                hoTen = User.Identity?.Name,
-                vaiTro = User.FindFirst("role")?.Value
-            });
-        }
+        DisableResponseCaching();
+        var response = await authService.LoginAsync(request, cancellationToken);
+        return response is null
+            ? Unauthorized(new { message = "Invalid email or password." })
+            : Ok(response);
     }
+
+    [Authorize]
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> LogoutAsync(CancellationToken cancellationToken)
+    {
+        var sessionId = Guid.Parse(User.FindFirst("jti")!.Value);
+        var userId = int.Parse(User.FindFirst("sub")!.Value, CultureInfo.InvariantCulture);
+        await sessionService.RevokeAsync(sessionId, userId, cancellationToken);
+
+        DisableResponseCaching();
+        return Ok(new { message = "Logged out successfully." });
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public IActionResult GetCurrentUser()
+    {
+        DisableResponseCaching();
+        return Ok(new
+        {
+            userId = User.FindFirst("sub")?.Value,
+            email = User.FindFirst("email")?.Value,
+            fullName = User.Identity?.Name,
+            role = User.FindFirst("role")?.Value
+        });
+    }
+
+    private void DisableResponseCaching() => Response.Headers.CacheControl = "no-store";
 }

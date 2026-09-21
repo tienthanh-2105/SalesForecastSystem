@@ -1,33 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using SalesForecastSystem.Infrastructure.Entities;
 
-namespace SalesForecastSystem.Infrastructure.Data
+namespace SalesForecastSystem.Infrastructure.Data;
+
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
-    public class AppDbContext : DbContext
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<User> Users => Set<User>();
+    public DbSet<LoginSession> LoginSessions => Set<LoginSession>();
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<InventoryBalance> InventoryBalances => Set<InventoryBalance>();
+    public DbSet<Warehouse> Warehouses => Set<Warehouse>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options)
-            : base(options)
-        {
-        }
-
-        public DbSet<VaiTro> VaiTros => Set<VaiTro>();
-
-        public DbSet<NguoiDung> NguoiDungs => Set<NguoiDung>();
-        public DbSet<PhienDangNhap> PhienDangNhaps => Set<PhienDangNhap>();
-        public DbSet<DanhMuc> DanhMucs => Set<DanhMuc>();
-        public DbSet<SanPham> SanPhams => Set<SanPham>();
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
-
-            modelBuilder.ApplyConfigurationsFromAssembly(
-                typeof(AppDbContext).Assembly);
-        }
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
 }
