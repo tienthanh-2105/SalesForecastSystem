@@ -6,6 +6,7 @@ public sealed record ProductListItemResponse(
     string CategoryName,
     string SKU,
     string Name,
+    string? ImageUrl,
     string Unit,
     decimal SalePrice,
     int MinimumStockLevel,

@@ -10,7 +10,8 @@ namespace SalesForecastSystem.API.Controllers;
 [Route("api/auth")]
 public sealed class AuthController(
     IAuthService authService,
-    ISessionService sessionService) : ControllerBase
+    ISessionService sessionService,
+    ITokenService tokenService) : ControllerBase
 {
     [AllowAnonymous]
     [HttpPost("login")]
@@ -25,6 +26,27 @@ public sealed class AuthController(
         return response is null
             ? Unauthorized(new { message = "Invalid email or password." })
             : Ok(response);
+    }
+
+    [Authorize]
+    [HttpPost("refresh")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> RefreshAsync(CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(User.FindFirst("jti")?.Value, out var sessionId) ||
+            !int.TryParse(User.FindFirst("sub")?.Value, NumberStyles.None,
+                CultureInfo.InvariantCulture, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var response = await tokenService.RefreshAccessTokenAsync(
+            sessionId,
+            userId,
+            cancellationToken);
+        DisableResponseCaching();
+        return response is null ? Unauthorized() : Ok(response);
     }
 
     [Authorize]

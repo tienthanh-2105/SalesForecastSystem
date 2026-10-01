@@ -38,6 +38,9 @@ bld/
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
 
+# Product images uploaded at runtime
+/SalesForecastSystem.API/wwwroot/uploads/products/
+
 # Visual Studio 2017 auto generated files
 Generated\ Files/
 

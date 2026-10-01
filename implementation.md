@@ -21,7 +21,7 @@ Kế hoạch áp dụng cách triển khai theo lát cắt dọc. Mỗi chức n
 
 - Kiến trúc ASP.NET Core 8 gồm API, Core và Infrastructure.
 - Kết nối SQL Server và script triển khai database.
-- Database schema version 6 gồm 17 bảng, 3 view và 2 stored procedure.
+- Database schema version 8 gồm 17 bảng, 3 view và 2 stored procedure.
 - Đăng nhập bằng email và mật khẩu BCrypt.
 - JWT access token, quản lý phiên đăng nhập và đăng xuất thu hồi token.
 - Kiểm tra lại trạng thái tài khoản, vai trò và phiên trên mỗi request.
@@ -29,26 +29,23 @@ Kế hoạch áp dụng cách triển khai theo lát cắt dọc. Mỗi chức n
 - CRUD danh mục.
 - CRUD sản phẩm, soft delete, API xem tồn kho và danh sách có tìm kiếm/lọc/sắp xếp/phân trang.
 - Quản lý người dùng dành cho Admin: danh sách, tạo, sửa, khóa/mở khóa và đặt lại mật khẩu.
+- API kho, nhà cung cấp và khách hàng với tìm kiếm, phân trang và phân quyền.
+- API phiếu nhập và đơn hàng: quản lý chứng từ nháp, chi tiết, trạng thái và ghi sổ tồn kho; API đọc lịch sử giao dịch kho.
 - Swagger có cấu hình Bearer authentication.
-- Bộ IntegrationChecks với 236 trường hợp HTTP đang đạt.
+- Bộ IntegrationChecks với 322 trường hợp HTTP trên database chính và 370 trường hợp trên database dùng một lần đang đạt.
+- API báo cáo bán hàng gồm tổng quan, xu hướng ngày/tuần/tháng, xếp hạng sản phẩm, danh mục, nhân viên và tồn kho dưới ngưỡng.
+- API chuẩn bị dữ liệu dự báo tạo chuỗi ngày liên tục, phân loại trạng thái dữ liệu và chia tập huấn luyện/kiểm định theo thời gian.
+- Module `SalesForecastSystem.ML` có baseline moving average và seasonal naive, walk-forward validation, tự chọn mô hình theo RMSE/MAE và tạo khoảng dự báo không âm.
 - Hướng dẫn cài đặt, chạy database, API và kiểm thử.
 
 ### 2.2. Phần đã có nền tảng database nhưng chưa có API hoàn chỉnh
 
-- Kho và nhà cung cấp.
-- Khách hàng.
-- Phiếu nhập và chi tiết phiếu nhập.
-- Đơn hàng và chi tiết đơn hàng.
-- Giao dịch kho.
 - Mô hình dự báo, lần chạy dự báo và kết quả dự báo.
-- View tồn kho, doanh số theo ngày và tổng tiền đơn hàng.
-- Stored procedure xác nhận nhập hàng và hoàn tất đơn hàng.
 
 ### 2.3. Phần chưa triển khai
 
-- API kho, khách hàng, nhà cung cấp, nhập hàng và đơn hàng.
-- Báo cáo, dashboard và biểu đồ.
-- Thuật toán và lịch chạy dự báo.
+- Dashboard và biểu đồ frontend.
+- API và lịch chạy dự báo.
 - Cảnh báo tồn kho và gợi ý nhập hàng.
 - Import và export Excel.
 - Frontend Bootstrap.
@@ -61,10 +58,10 @@ Trước khi bắt đầu Tuần 2, tiến độ được ước tính khoảng 
 - Controller chỉ xử lý HTTP; truy cập dữ liệu và nghiệp vụ nằm trong service implementation.
 - Tên class, method, entity, DTO, route, bảng và cột đang hoạt động đã chuyển sang tiếng Anh.
 - Database sử dụng Database First với migration SQL có version vì schema có stored procedure, trigger, view và khóa đồng thời cần được quản lý tập trung.
-- Schema hiện tại là version 6 với 17 bảng tên tiếng Anh.
+- Schema hiện tại là version 8 với 17 bảng tên tiếng Anh.
 - Các thao tác ghi sổ dùng transaction, `XACT_ABORT`, `UPDLOCK`, `HOLDLOCK` và application lock theo kho.
 - Inventory ledger là append-only, có unique index chống ghi trùng và trigger không cho tồn kho âm.
-- Sau khi hoàn thiện quản lý người dùng, bộ 202 E2E và bộ kiểm chứng ACID của database đều đạt; hiện bộ E2E đã mở rộng lên 236 trường hợp.
+- Sau khi hoàn thiện quản lý người dùng, bộ 202 E2E và bộ kiểm chứng ACID của database đều đạt; hiện bộ E2E đã mở rộng lên 322 trường hợp trên database chính và 370 trường hợp trên database dùng một lần.
 
 ### 2.5. Hoàn thiện sản phẩm đã hoàn thành
 
@@ -261,7 +258,7 @@ Hoàn thành luồng giao dịch tạo ra dữ liệu bán hàng và bảo đả
 
 Kết quả: hai API `warehouses` và `suppliers` đã có CRUD với DELETE dạng ngừng hoạt động, tìm kiếm/lọc/phân trang và phân quyền. Bộ HTTP/E2E hiện đạt 236/236, kiểm chứng ACID đạt 7/7. Kho và nhà cung cấp đã được phiếu nhập tham chiếu vẫn được giữ lại khi ngừng hoạt động.
 
-### Ngày 2 Khách hàng
+### Ngày 2 Khách hàng — đã hoàn thành ngày 22/09/2026
 
 #### Triển khai
 
@@ -276,7 +273,9 @@ Kết quả: hai API `warehouses` và `suppliers` đã có CRUD với DELETE d�
 - Kiểm tra validation email và số điện thoại.
 - Kiểm tra khách hàng không tồn tại và dữ liệu trùng.
 
-### Ngày 3 Phiếu nhập hàng
+Kết quả: API `customers` có tạo, xem, sửa, ngừng hoạt động, tìm kiếm và phân trang. Email khách hàng là duy nhất khi được cung cấp. API `/api/customers/{id}/orders` xem lịch sử đơn hàng theo trang. Admin và SalesStaff được truy cập; khách hàng đã có đơn hàng vẫn được giữ lại khi ngừng hoạt động. Bộ HTTP/E2E đạt 266/266, kiểm chứng ACID đạt 7/7; schema version 7.
+
+### Ngày 3 Phiếu nhập hàng — triển khai sớm ngày 22/09/2026
 
 #### Triển khai
 
@@ -293,7 +292,9 @@ Kết quả: hai API `warehouses` và `suppliers` đã có CRUD với DELETE d�
 - Phiếu đã xác nhận không được sửa hoặc xóa.
 - Một dòng lỗi làm toàn bộ transaction rollback.
 
-### Ngày 4 và 5 Đơn hàng
+Kết quả triển khai sớm: API `/api/purchases` đã có tạo/sửa/xóa phiếu nháp, quản lý dòng, hủy, xác nhận qua `usp_PostPurchaseOrder` và lọc lịch sử. Kiểm thử liên hoàn trên database dùng một lần xác nhận tăng tồn đúng một lần và phiếu đã ghi sổ không thể xóa.
+
+### Ngày 4 và 5 Đơn hàng — triển khai sớm ngày 22/09/2026
 
 #### Triển khai
 
@@ -313,6 +314,8 @@ Kết quả: hai API `warehouses` và `suppliers` đã có CRUD với DELETE d�
 - Không sửa chi tiết sau khi đơn hoàn tất.
 - Hủy đơn chưa hoàn tất không ảnh hưởng tồn kho.
 - Hai yêu cầu bán đồng thời không làm tồn kho âm.
+
+Kết quả triển khai sớm: API `/api/sales` đã có tạo/sửa/xóa đơn nháp, quản lý dòng, lưu tên/số điện thoại khách hàng và địa chỉ giao hàng, chuyển `Draft → Pending → Delivering → Completed`, hủy trước hoàn tất và lọc lịch sử. Hoàn tất gọi `usp_CompleteSalesOrder`. Kiểm thử liên hoàn xác nhận tính tiền, trừ tồn đúng một lần, từ chối bán vượt tồn và không sửa dòng sau khi gửi đơn. Hai yêu cầu bán đồng thời trên cùng kho đã được kiểm thử: một đơn hoàn tất, đơn còn lại nhận `409`, tồn kho không âm.
 
 ### Ngày 6 Hồi quy tuần 2
 
@@ -339,7 +342,7 @@ Tiến độ dự kiến cuối tuần: 65 đến 70 phần trăm.
 
 Hoàn thành giá trị chính của hệ thống: báo cáo bán hàng, dự báo nhu cầu và đề xuất nhập hàng.
 
-### Ngày 1 Báo cáo bán hàng
+### Ngày 1 Báo cáo bán hàng — đã hoàn thành sớm ngày 23/09/2026
 
 #### Triển khai
 
@@ -352,12 +355,13 @@ Hoàn thành giá trị chính của hệ thống: báo cáo bán hàng, dự b�
 
 #### E2E thực hiện ngay
 
-- Tạo bộ dữ liệu bán hàng có kết quả biết trước.
-- So sánh kết quả API với tổng tiền và số lượng kỳ vọng.
-- Kiểm tra lọc theo kho, sản phẩm, danh mục, nhân viên và thời gian.
-- Kiểm tra đơn nháp hoặc đã hủy không được tính vào doanh số.
+- Đã kiểm tra quyền truy cập của cả ba vai trò và từ chối request chưa đăng nhập.
+- Đã đối chiếu doanh thu, số lượng, đơn hàng, sản phẩm, danh mục, nhân viên và tồn kho bằng dữ liệu giao dịch thật.
+- Đã xác nhận báo cáo chỉ tính đơn `Completed`, không tính đơn bị hủy hoặc hoàn tất thất bại.
+- Đã kiểm tra khoảng ngày, số lượng top, chu kỳ và mã kho không hợp lệ.
+- Kết quả: build 0 warning, 0 error; 311/311 kiểm tra trên database chính; 358/358 kiểm tra trên database dùng một lần; 7/7 kiểm chứng ACID.
 
-### Ngày 2 Chuẩn bị dữ liệu dự báo
+### Ngày 2 Chuẩn bị dữ liệu dự báo — đã hoàn thành ngày 24/09/2026
 
 #### Triển khai
 
@@ -369,12 +373,14 @@ Hoàn thành giá trị chính của hệ thống: báo cáo bán hàng, dự b�
 
 #### E2E thực hiện ngay
 
-- Dữ liệu nguồn không chứa đơn nháp hoặc đã hủy.
-- Không để rò rỉ dữ liệu sau ngày bắt đầu dự báo.
-- Ngày không bán được xử lý đúng quy tắc.
-- Kết quả tổng hợp khớp với báo cáo bán hàng.
+- Đã xác nhận dữ liệu nguồn chỉ chứa đơn `Completed`, không chứa đơn nháp hoặc đã hủy.
+- Đã tạo ngày liên tục và điền số lượng 0 cho ngày không bán.
+- Đã phân loại `Sold`, `NoSale`, `StockOut` và `MissingInventoryHistory` bằng lịch sử tồn kho.
+- Đã chia tập `Training` và `Validation` theo thứ tự thời gian, không trộn dữ liệu tương lai vào tập huấn luyện.
+- Đã đối chiếu tổng số lượng với báo cáo bán hàng và tồn kho cuối ngày.
+- Kết quả: build 0 warning, 0 error; 322/322 kiểm tra trên database chính; 370/370 kiểm tra trên database dùng một lần; 7/7 kiểm chứng ACID.
 
-### Ngày 3 Mô hình dự báo
+### Ngày 3 Mô hình dự báo — đã hoàn thành ngày 25/09/2026
 
 #### Triển khai
 
@@ -382,6 +388,16 @@ Hoàn thành giá trị chính của hệ thống: báo cáo bán hàng, dự b�
 - Mô hình chính bằng phương pháp thống kê hoặc Machine Learning phù hợp.
 - Tính MAE và RMSE trên tập kiểm định.
 - Lưu phiên bản, tham số, khoảng dữ liệu và kết quả mô hình.
+
+#### Kết quả thực hiện
+
+- Đã tạo module Python vật lý `SalesForecastSystem.ML` thay cho các solution folder rỗng trước đây.
+- Đã triển khai moving average với cửa sổ 3, 7, 14 ngày và seasonal naive chu kỳ 7 ngày.
+- Đã triển khai walk-forward validation; mỗi dự đoán kiểm định chỉ sử dụng dữ liệu ở trước ngày cần dự đoán.
+- Đã tính MAE và RMSE, chọn mô hình có RMSE thấp nhất và dùng MAE làm tiêu chí phụ khi hòa.
+- Đã loại các điểm `StockOut` và `MissingInventoryHistory` khỏi quan sát nhu cầu để không coi ngày thiếu hàng hoặc thiếu lịch sử là nhu cầu bằng 0.
+- Kết quả đầu ra chứa tên, phiên bản, tham số, khoảng huấn luyện/kiểm định, MAE, RMSE, các mô hình ứng viên và chuỗi dự báo có cận dưới/cận trên để backend lưu ở bước API tiếp theo.
+- Đã kiểm tra 6/6 unit test ML; build 0 warning, 0 error; 322/322 kiểm tra HTTP trên database chính; 370/370 kiểm tra HTTP trên database dùng một lần; 7/7 kiểm chứng ACID.
 
 #### E2E thực hiện ngay
 

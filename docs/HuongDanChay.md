@@ -154,7 +154,7 @@ dotnet run --project tests/SalesForecastSystem.IntegrationChecks
 Kết quả đúng:
 
 ```text
-ALL 236 HTTP CHECKS PASSED; Swagger security schema verified.
+ALL 295 HTTP CHECKS PASSED; Swagger security schema verified.
 Temporary test data cleaned up.
 ```
 
@@ -356,3 +356,170 @@ Ví dụ tạo nhà cung cấp:
 ```
 
 Tên kho bắt buộc, tối đa 100 ký tự và duy nhất. Tên nhà cung cấp bắt buộc, tối đa 200 ký tự; mã số thuế tùy chọn, tối đa 20 ký tự và duy nhất nếu được cung cấp. Email và số điện thoại phải hợp lệ. Tên rỗng và tham số phân trang sai trả `400`; trùng tên kho hoặc mã số thuế trả `409`; mã không tồn tại trả `404`. DELETE chỉ ngừng hoạt động nên kho/nhà cung cấp đã được chứng từ tham chiếu vẫn còn để bảo toàn lịch sử.
+
+## 16. API khách hàng
+
+`Admin` và `SalesStaff` được xem và quản lý khách hàng. `WarehouseManager` nhận `403`; người chưa đăng nhập nhận `401`.
+
+| Phương thức | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| GET | `/api/customers` | Tìm kiếm, lọc trạng thái và phân trang |
+| GET | `/api/customers/{id}` | Xem chi tiết |
+| GET | `/api/customers/{id}/orders` | Xem lịch sử đơn hàng theo trang |
+| POST | `/api/customers` | Tạo, trả `201` |
+| PUT | `/api/customers/{id}` | Sửa, trả `200` |
+| DELETE | `/api/customers/{id}` | Chuyển `isActive` thành `false`, trả `200` |
+
+GET danh sách hỗ trợ `search` (họ tên, email hoặc số điện thoại), `isActive`, `page` (mặc định 1) và `pageSize` (mặc định 20, tối đa 100). GET lịch sử hỗ trợ `page` và `pageSize`, sắp xếp ngày đơn mới nhất trước. Trang vượt quá dữ liệu trả `items: []`.
+
+Ví dụ tạo khách hàng:
+
+```json
+{
+  "fullName": "Nguyễn Văn A",
+  "email": "customer@example.com",
+  "phoneNumber": "0901234567",
+  "address": "Hà Nội",
+  "isActive": true
+}
+```
+
+Họ tên bắt buộc, tối đa 100 ký tự. Email và số điện thoại không bắt buộc nhưng phải hợp lệ nếu được cung cấp; email được chuẩn hóa chữ thường và phải duy nhất. Email trùng trả `409`; dữ liệu không hợp lệ trả `400`; mã khách hàng không tồn tại trả `404`. DELETE chỉ ngừng hoạt động để giữ tham chiếu và lịch sử đơn hàng.
+
+## 17. API phiếu nhập
+
+`Admin` và `WarehouseManager` được sử dụng `/api/purchases`; người chưa đăng nhập nhận `401`, `SalesStaff` nhận `403`.
+
+| Phương thức | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| GET | `/api/purchases` | Lọc theo `warehouseId`, `supplierId`, `status`, `fromDate`, `toDate`; phân trang |
+| GET | `/api/purchases/{id}` | Xem phiếu và chi tiết |
+| POST | `/api/purchases` | Tạo phiếu `Draft` |
+| PUT | `/api/purchases/{id}` | Sửa phiếu nháp |
+| POST / PUT / DELETE | `/api/purchases/{id}/items[/{itemId}]` | Thêm, sửa, xóa dòng nháp |
+| POST | `/api/purchases/{id}/post` | Xác nhận nhập và ghi tăng tồn kho |
+| POST | `/api/purchases/{id}/cancel` | Hủy phiếu chưa ghi sổ |
+| DELETE | `/api/purchases/{id}` | Xóa phiếu nháp |
+
+Ví dụ tạo phiếu rồi thêm dòng:
+
+```json
+{ "orderNumber": "PO-2026-001", "warehouseId": 1, "supplierId": 1, "orderDate": "2026-09-22", "notes": "Nhập hàng" }
+```
+
+```json
+{ "productId": 1, "quantity": 10, "unitPrice": 6000 }
+```
+
+Phiếu đã `Posted` hoặc `Cancelled` không thể sửa. Gọi `post` lặp lại trên phiếu đã `Posted` không ghi tăng tồn lần thứ hai. Phiếu trống, kho hoặc sản phẩm ngừng hoạt động và dữ liệu trùng trả lỗi phù hợp (`400` hoặc `409`). Tồn kho được tính từ `InventoryTransactions`.
+
+## 18. API đơn hàng bán
+
+`Admin` và `SalesStaff` được sử dụng `/api/sales`; `WarehouseManager` nhận `403`.
+
+| Phương thức | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| GET | `/api/sales` | Lọc theo kho, khách hàng, nhân viên, trạng thái, ngày; phân trang |
+| GET | `/api/sales/{id}` | Xem đơn và chi tiết |
+| POST | `/api/sales` | Tạo đơn `Draft` |
+| PUT | `/api/sales/{id}` | Sửa đơn nháp |
+| POST / PUT / DELETE | `/api/sales/{id}/items[/{itemId}]` | Thêm, sửa, xóa dòng nháp |
+| POST | `/api/sales/{id}/submit` | Chuyển sang `Pending` |
+| POST | `/api/sales/{id}/dispatch` | Chuyển sang `Delivering` |
+| POST | `/api/sales/{id}/complete` | Hoàn tất, ghi xuất kho và chuyển sang `Completed` |
+| POST | `/api/sales/{id}/cancel` | Hủy đơn chưa hoàn tất |
+| DELETE | `/api/sales/{id}` | Xóa đơn nháp |
+
+Ví dụ tạo đơn:
+
+```json
+{ "orderNumber": "SO-2026-001", "warehouseId": 1, "customerId": 1, "orderDate": "2026-09-22", "shippingAddress": "Hà Nội" }
+```
+
+Dòng đơn gồm `productId`, `quantity`, `unitPrice` và `discount`; tiền dòng bằng `quantity × unitPrice − discount`. Hệ thống lưu tên và số điện thoại khách hàng tại thời điểm tạo hoặc sửa đơn nháp. Luồng trạng thái API là `Draft → Pending → Delivering → Completed`; có thể hủy trước `Completed`. Chi tiết chỉ sửa được ở `Draft`. Xác nhận lặp không xuất kho lần hai; thiếu hàng trả `409` và không làm giảm tồn. Khách hàng có thể để trống cho giao dịch không gắn hồ sơ khách hàng.
+
+Kiểm thử hồi quy thông thường: `dotnet run --project tests/SalesForecastSystem.IntegrationChecks`. Kiểm thử đầy đủ nhập → bán → tồn kho trên database tự tạo rồi xóa: `./tests/RunDisposableIntegration.ps1`.
+
+## 19. Lịch sử giao dịch kho
+
+Mọi vai trò đã đăng nhập được gọi `GET /api/inventory-transactions`. Bộ lọc gồm `warehouseId`, `productId`, `fromDate`, `toDate`, `page` và `pageSize` (tối đa 100). Mỗi dòng cho biết số lượng tăng hoặc giảm, ngày giao dịch và mã dòng phiếu nhập/đơn hàng nguồn. API chỉ đọc; mọi ghi nhận tồn kho vẫn phải qua thủ tục xác nhận chứng từ.
+
+## 20. Test luồng nhập - bán trên web Swagger
+
+Xem [dữ liệu mẫu và hướng dẫn thao tác chi tiết](DuLieuMauVaHuongDanTestSwagger-2026-09-22.md) để có JSON cho từng endpoint, chỗ ghi ID, kết quả mong đợi và các trường hợp lỗi.
+
+1. Trong thư mục dự án, chạy `./database/Deploy.ps1 -Verify`, sau đó `dotnet run --project SalesForecastSystem.API --launch-profile http`. Mở `http://localhost:5112/swagger`. Nếu API chưa có JWT hoặc Admin, thực hiện mục 4 và 5 ở trên trước khi chạy.
+2. Gọi `POST /api/auth/login` bằng tài khoản Admin. Sao chép `accessToken`, bấm **Authorize** ở đầu trang và dán token, không thêm `Bearer`.
+3. Tạo lần lượt các dữ liệu bên dưới. Sau mỗi lệnh, ghi lại ID trả về để dùng cho lệnh sau. Dùng tên và mã khác nhau nếu chạy lại để tránh lỗi trùng dữ liệu.
+
+| API | JSON mẫu | Kết quả |
+| --- | --- | --- |
+| `POST /api/categories` | `{"name":"Demo 2209","isActive":true}` | `201`, ghi `categoryId` |
+| `POST /api/warehouses` | `{"name":"Kho Demo 2209","isActive":true}` | `201`, ghi `warehouseId` |
+| `POST /api/suppliers` | `{"name":"NCC Demo 2209","isActive":true}` | `201`, ghi `supplierId` |
+| `POST /api/customers` | `{"fullName":"Khách Demo 2209","phoneNumber":"0901234567"}` | `201`, ghi `customerId` |
+| `POST /api/products` | `{"sku":"DEMO-2209","name":"Sản phẩm Demo","unit":"cái","categoryId":1,"salePrice":100,"minimumStockLevel":0,"isActive":true}` | Thay `categoryId`; `201`, ghi `productId` |
+
+4. Tạo phiếu nhập bằng `POST /api/purchases` với `{"orderNumber":"PO-DEMO-2209","warehouseId":1,"supplierId":1,"orderDate":"2026-09-22"}`. Thay hai ID và ghi `purchaseOrderId` từ response. Gọi `POST /api/purchases/{purchaseOrderId}/items` với `{"productId":1,"quantity":10,"unitPrice":60}`; thay ID sản phẩm. Gọi `POST /api/purchases/{purchaseOrderId}/post`. Kết quả là `200`, trạng thái `Posted`.
+5. Gọi `GET /api/products/{productId}/stock`. Với sản phẩm mới chỉ có phiếu nhập trên, `quantityOnHand` phải là `10`. Gọi lại endpoint `post`: vẫn `200` và tồn vẫn `10`.
+6. Tạo đơn bằng `POST /api/sales` với `{"orderNumber":"SO-DEMO-2209","warehouseId":1,"customerId":1,"orderDate":"2026-09-22","shippingAddress":"Hà Nội"}`. Thay ID và ghi `salesOrderId`. Gọi `POST /api/sales/{salesOrderId}/items` với `{"productId":1,"quantity":4,"unitPrice":100,"discount":20}`.
+7. Gọi theo thứ tự `POST /api/sales/{salesOrderId}/submit`, `/dispatch`, rồi `/complete`. Đơn chuyển thành `Completed`, `totalAmount` là `380`. Gọi lại `GET /api/products/{productId}/stock`: tồn là `6`. Gọi `GET /api/inventory-transactions?warehouseId=1&productId=1` sau khi thay ID: có một dòng nhập `+10` và một dòng bán `-4`.
+
+Nếu nhận `401`, đăng nhập và Authorize lại. Nếu nhận `403`, kiểm tra vai trò của tài khoản. Nếu nhận `409` ở bước tạo, dùng `orderNumber` hoặc `sku` mới; nếu nhận `409` khi hoàn tất đơn, kiểm tra tồn kho và thứ tự trạng thái. Các thao tác tạo và xác nhận trong hướng dẫn ghi dữ liệu thật vào database local, nên dùng mã `DEMO` riêng và tránh làm trên dữ liệu thật của doanh nghiệp.
+
+## 21. API báo cáo bán hàng
+
+Mọi vai trò đã đăng nhập được xem báo cáo. Người chưa đăng nhập nhận `401`. Báo cáo doanh số chỉ tính đơn có trạng thái `Completed`.
+
+| Đường dẫn | Nội dung |
+| --- | --- |
+| `GET /api/reports/sales-summary` | Tổng số đơn, số lượng bán và doanh thu |
+| `GET /api/reports/sales-trend` | Dữ liệu xu hướng theo `Day`, `Week` hoặc `Month` |
+| `GET /api/reports/top-products` | Xếp hạng sản phẩm theo doanh thu |
+| `GET /api/reports/top-categories` | Xếp hạng danh mục theo doanh thu |
+| `GET /api/reports/sales-by-staff` | Hiệu suất nhân viên theo doanh thu |
+| `GET /api/reports/inventory` | Tổng tồn kho và trạng thái dưới ngưỡng |
+
+Các báo cáo bán hàng hỗ trợ `fromDate`, `toDate`, `warehouseId`, `productId`, `categoryId` và `staffUserId`. Khoảng ngày tối đa 366 ngày. Các API xếp hạng nhận `top` từ 1 đến 100. Báo cáo tồn kho nhận `warehouseId` và `belowMinimumOnly`.
+
+Ví dụ kiểm tra trên Swagger sau khi đăng nhập và **Authorize**:
+
+```text
+GET /api/reports/sales-summary?fromDate=2026-09-01&toDate=2026-09-30
+GET /api/reports/sales-trend?period=Day&warehouseId=1
+GET /api/reports/top-products?top=10
+GET /api/reports/top-categories?top=5
+GET /api/reports/sales-by-staff?top=10
+GET /api/reports/inventory?warehouseId=1&belowMinimumOnly=true
+```
+
+Nếu chưa có đơn `Completed`, các danh sách doanh số trả mảng rỗng và tổng quan trả các giá trị bằng 0. Để đối chiếu nhanh, hoàn thành đơn mẫu ở mục 20 rồi lọc theo đúng `warehouseId` và `productId`: tổng quan phải có `orderCount = 1`, `quantitySold = 4`, `revenue = 380`; tồn kho của sản phẩm là `6`.
+
+## 22. API chuẩn bị dữ liệu dự báo
+
+Mọi vai trò đã đăng nhập được gọi `GET /api/forecast-data/daily`. API tạo chuỗi dữ liệu bán hàng liên tục theo ngày cho một sản phẩm, dùng làm đầu vào cho bước huấn luyện mô hình.
+
+Tham số bắt buộc:
+
+- `productId`: mã sản phẩm.
+- `fromDate` và `toDate`: khoảng dữ liệu, tối thiểu 2 ngày và tối đa 1095 ngày.
+
+Tham số tùy chọn:
+
+- `warehouseId`: giới hạn dữ liệu tại một kho.
+- `validationPercentage`: tỷ lệ tập kiểm định từ 10 đến 50, mặc định 20.
+
+Ví dụ:
+
+```text
+GET /api/forecast-data/daily?productId=1&warehouseId=1&fromDate=2026-09-20&toDate=2026-09-24&validationPercentage=40
+```
+
+Mỗi ngày có `quantitySold`, `closingStock`, `dataStatus` và `datasetSplit`. API chỉ cộng số lượng từ đơn `Completed`; ngày không bán có `quantitySold = 0`. Trạng thái dữ liệu gồm:
+
+- `Sold`: có phát sinh bán hàng.
+- `NoSale`: không bán nhưng còn tồn kho.
+- `StockOut`: không bán và tồn kho cuối ngày bằng 0 hoặc âm.
+- `MissingInventoryHistory`: chưa có giao dịch kho để xác định khả năng sẵn có.
+
+Các điểm cũ được gắn `Training`; phần cuối chuỗi được gắn `Validation`. `validationStartDate` cho biết ngày bắt đầu tập kiểm định. Sản phẩm hoặc kho không tồn tại trả `404`; khoảng ngày hoặc tỷ lệ sai trả `400`; chưa đăng nhập trả `401`.

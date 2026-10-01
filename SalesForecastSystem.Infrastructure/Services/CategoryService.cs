@@ -15,12 +15,10 @@ public sealed class CategoryService(AppDbContext context) : ICategoryService
     {
         return await context.Categories
             .AsNoTracking()
-            .OrderBy(category => category.CategoryId)
-            .Select(category => new CategoryResponse(
-                category.CategoryId,
-                category.Name,
-                category.Description,
-                category.IsActive))
+            .OrderBy(category => category.ParentCategoryId.HasValue)
+            .ThenBy(category => category.ParentCategoryId)
+            .ThenBy(category => category.Name)
+            .Select(ToResponseExpression())
             .ToListAsync(cancellationToken);
     }
 
@@ -30,18 +28,32 @@ public sealed class CategoryService(AppDbContext context) : ICategoryService
     {
         var category = await context.Categories
             .AsNoTracking()
-            .SingleOrDefaultAsync(item => item.CategoryId == id, cancellationToken);
+            .Where(item => item.CategoryId == id)
+            .Select(ToResponseExpression())
+            .SingleOrDefaultAsync(cancellationToken);
 
         return category is null
             ? NotFound()
-            : ServiceResult<CategoryResponse>.Success(ToResponse(category));
+            : ServiceResult<CategoryResponse>.Success(category);
     }
 
     public async Task<ServiceResult<CategoryResponse>> CreateAsync(
         CategoryRequest request,
         CancellationToken cancellationToken = default)
     {
-        var category = new Category();
+        var validationError = await ValidateParentAsync(
+            request.ParentCategoryId,
+            null,
+            cancellationToken);
+        if (validationError is not null)
+        {
+            return validationError;
+        }
+
+        var category = new Category
+        {
+            Code = await GetNextCodeAsync(cancellationToken)
+        };
         ApplyRequest(category, request);
         context.Categories.Add(category);
 
@@ -54,7 +66,7 @@ public sealed class CategoryService(AppDbContext context) : ICategoryService
             return Duplicate();
         }
 
-        return ServiceResult<CategoryResponse>.Success(ToResponse(category));
+        return await GetByIdAsync(category.CategoryId, cancellationToken);
     }
 
     public async Task<ServiceResult<CategoryResponse>> UpdateAsync(
@@ -67,6 +79,15 @@ public sealed class CategoryService(AppDbContext context) : ICategoryService
         if (category is null)
         {
             return NotFound();
+        }
+
+        var validationError = await ValidateParentAsync(
+            request.ParentCategoryId,
+            id,
+            cancellationToken);
+        if (validationError is not null)
+        {
+            return validationError;
         }
 
         ApplyRequest(category, request);
@@ -83,7 +104,7 @@ public sealed class CategoryService(AppDbContext context) : ICategoryService
             return Duplicate();
         }
 
-        return ServiceResult<CategoryResponse>.Success(ToResponse(category));
+        return await GetByIdAsync(category.CategoryId, cancellationToken);
     }
 
     public async Task<ServiceResult<bool>> DeleteAsync(
@@ -110,7 +131,7 @@ public sealed class CategoryService(AppDbContext context) : ICategoryService
         {
             return ServiceResult<bool>.Failure(
                 ServiceErrorType.Conflict,
-                "Category contains products and cannot be deleted.");
+                "Category contains products or child categories and cannot be deleted.");
         }
 
         return ServiceResult<bool>.Success(true);
@@ -118,6 +139,7 @@ public sealed class CategoryService(AppDbContext context) : ICategoryService
 
     private static void ApplyRequest(Category category, CategoryRequest request)
     {
+        category.ParentCategoryId = request.ParentCategoryId;
         category.Name = request.Name.Trim();
         category.Description = request.Description?.Trim();
         category.IsActive = request.IsActive;
@@ -126,12 +148,96 @@ public sealed class CategoryService(AppDbContext context) : ICategoryService
     private static bool IsDuplicate(DbUpdateException exception) =>
         exception.InnerException is SqlException { Number: 2601 or 2627 };
 
-    private static CategoryResponse ToResponse(Category category) =>
-        new(category.CategoryId, category.Name, category.Description, category.IsActive);
+    private async Task<ServiceResult<CategoryResponse>?> ValidateParentAsync(
+        int? parentCategoryId,
+        int? categoryId,
+        CancellationToken cancellationToken)
+    {
+        if (!parentCategoryId.HasValue)
+        {
+            return null;
+        }
+
+        if (parentCategoryId == categoryId)
+        {
+            return Validation("A category cannot be its own parent.");
+        }
+
+        var parent = await context.Categories
+            .AsNoTracking()
+            .Where(category => category.CategoryId == parentCategoryId.Value)
+            .Select(category => new
+            {
+                category.ParentCategoryId,
+                HasProducts = category.Products.Any()
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (parent is null)
+        {
+            return Validation("Parent category does not exist.");
+        }
+
+        if (parent.ParentCategoryId.HasValue)
+        {
+            return Validation("Only a root category can be selected as the parent.");
+        }
+
+        if (parent.HasProducts)
+        {
+            return Validation("A category containing products cannot become a parent category.");
+        }
+
+        if (categoryId.HasValue && await context.Categories.AnyAsync(
+                category => category.ParentCategoryId == categoryId.Value,
+                cancellationToken))
+        {
+            return Validation("A category containing child categories cannot be nested under another category.");
+        }
+
+        return null;
+    }
+
+    private static System.Linq.Expressions.Expression<Func<Category, CategoryResponse>> ToResponseExpression() =>
+        category => new CategoryResponse(
+            category.CategoryId,
+            category.Code,
+            category.Name,
+            category.Description,
+            category.IsActive,
+            category.ParentCategoryId,
+            category.ParentCategory == null ? null : category.ParentCategory.Name,
+            category.Children.Any());
+
+    private async Task<string> GetNextCodeAsync(CancellationToken cancellationToken)
+    {
+        var codes = await context.Categories
+            .AsNoTracking()
+            .Select(category => category.Code)
+            .ToListAsync(cancellationToken);
+        var usedNumbers = codes
+            .Where(code => code.StartsWith("DM-"))
+            .Select(code => int.TryParse(code.AsSpan(3), out var number) ? number : 0)
+            .Where(number => number > 0)
+            .ToHashSet();
+        var nextNumber = 1;
+        while (usedNumbers.Contains(nextNumber))
+        {
+            nextNumber++;
+        }
+
+        return $"DM-{nextNumber:0000}";
+    }
 
     private static ServiceResult<CategoryResponse> NotFound() =>
         ServiceResult<CategoryResponse>.Failure(ServiceErrorType.NotFound, "Category was not found.");
 
     private static ServiceResult<CategoryResponse> Duplicate() =>
         ServiceResult<CategoryResponse>.Failure(ServiceErrorType.Conflict, "Category name already exists.");
+
+    private static ServiceResult<CategoryResponse> Validation(string message) =>
+        ServiceResult<CategoryResponse>.Failure(
+            ServiceErrorType.Validation,
+            message,
+            nameof(CategoryRequest.ParentCategoryId));
 }

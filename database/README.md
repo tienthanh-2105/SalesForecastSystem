@@ -26,7 +26,7 @@ Run:
 
 The deployment is idempotent. It creates a new database when needed, upgrades an existing Vietnamese schema, rebuilds database operations and optionally runs rollback-based verification.
 
-The current schema version is 6.
+The current schema version is 10.
 
 ## Tables
 
@@ -35,7 +35,7 @@ The current schema version is 6.
 | Authorization | `Roles` | Application roles |
 | Authorization | `Users` | User accounts and BCrypt password hashes |
 | Authentication | `LoginSessions` | JWT sessions and revocation state |
-| Catalog | `Categories` | Product categories |
+| Catalog | `Categories` | Two-level product categories with an optional parent category |
 | Catalog | `Products` | Product master data, image URL, minimum stock threshold and current sale price |
 | Inventory | `Warehouses` | Warehouses |
 | Partners | `Customers` | Customers |
@@ -63,7 +63,7 @@ The current schema version is 6.
 - `usp_PostPurchaseOrder`: atomically posts a purchase order and increases inventory.
 - `usp_CompleteSalesOrder`: atomically completes a sales order after verifying inventory.
 
-Application code must use these procedures for posting. It must not update document status or insert inventory transactions directly.
+Application code must use these procedures for inventory posting. It may update draft workflow statuses (`Cancelled`, `Pending`, `Delivering`) through the restricted application role; it must not set `Posted` or `Completed` directly or insert inventory transactions.
 
 ## ACID guarantees
 
@@ -100,7 +100,7 @@ Application code must use these procedures for posting. It must not update docum
 |---|---|
 | `Users` | `Active`, `Locked` |
 | `PurchaseOrders` | `Draft`, `Posted`, `Cancelled` |
-| `SalesOrders` | `Draft`, `Completed`, `Cancelled` |
+| `SalesOrders` | `Draft`, `Pending`, `Delivering`, `Completed`, `Cancelled` |
 | `ForecastRuns` | `Pending`, `Running`, `Completed`, `Failed` |
 
 ## Application database role

@@ -4,6 +4,9 @@ namespace SalesForecastSystem.Core.DTOs.Categories;
 
 public sealed class CategoryRequest
 {
+    [Range(1, int.MaxValue, ErrorMessage = "Parent category ID must be a positive integer.")]
+    public int? ParentCategoryId { get; set; }
+
     [Required(ErrorMessage = "Category name is required.")]
     [StringLength(100, ErrorMessage = "Category name cannot exceed 100 characters.")]
     public string Name { get; set; } = string.Empty;

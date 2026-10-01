@@ -20,9 +20,12 @@ public sealed class ProductService(AppDbContext context) : IProductService
             {
                 ProductId = product.ProductId,
                 CategoryId = product.CategoryId,
-                CategoryName = product.Category.Name,
+                CategoryName = product.Category.ParentCategory == null
+                    ? product.Category.Name
+                    : product.Category.ParentCategory.Name + " / " + product.Category.Name,
                 SKU = product.SKU,
                 Name = product.Name,
+                ImageUrl = product.ImageUrl,
                 Unit = product.Unit,
                 SalePrice = product.SalePrice,
                 MinimumStockLevel = product.MinimumStockLevel,
@@ -43,7 +46,12 @@ public sealed class ProductService(AppDbContext context) : IProductService
 
         if (request.CategoryId.HasValue)
         {
-            query = query.Where(product => product.CategoryId == request.CategoryId.Value);
+            var categoryId = request.CategoryId.Value;
+            query = query.Where(product =>
+                product.CategoryId == categoryId ||
+                context.Categories.Any(category =>
+                    category.CategoryId == product.CategoryId &&
+                    category.ParentCategoryId == categoryId));
         }
 
         if (request.IsActive.HasValue)
@@ -78,6 +86,7 @@ public sealed class ProductService(AppDbContext context) : IProductService
             row.CategoryName,
             row.SKU,
             row.Name,
+            row.ImageUrl,
             row.Unit,
             row.SalePrice,
             row.MinimumStockLevel,
@@ -219,14 +228,36 @@ public sealed class ProductService(AppDbContext context) : IProductService
         int? productId,
         CancellationToken cancellationToken)
     {
-        var categoryExists = await context.Categories.AnyAsync(
-            category => category.CategoryId == request.CategoryId,
-            cancellationToken);
-        if (!categoryExists)
+        var category = await context.Categories
+            .AsNoTracking()
+            .Where(item => item.CategoryId == request.CategoryId)
+            .Select(item => new
+            {
+                item.IsActive,
+                HasChildren = item.Children.Any()
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (category is null)
         {
             return ServiceResult<ProductResponse>.Failure(
                 ServiceErrorType.Validation,
                 "Category does not exist.",
+                nameof(request.CategoryId));
+        }
+
+        if (category.HasChildren)
+        {
+            return ServiceResult<ProductResponse>.Failure(
+                ServiceErrorType.Validation,
+                "Products must be assigned to a child category, not a parent category.",
+                nameof(request.CategoryId));
+        }
+
+        if (!category.IsActive)
+        {
+            return ServiceResult<ProductResponse>.Failure(
+                ServiceErrorType.Validation,
+                "Products cannot be assigned to an inactive category.",
                 nameof(request.CategoryId));
         }
 
@@ -379,6 +410,7 @@ public sealed class ProductService(AppDbContext context) : IProductService
         public string CategoryName { get; init; } = string.Empty;
         public string SKU { get; init; } = string.Empty;
         public string Name { get; init; } = string.Empty;
+        public string? ImageUrl { get; init; }
         public string Unit { get; init; } = string.Empty;
         public decimal SalePrice { get; init; }
         public int MinimumStockLevel { get; init; }

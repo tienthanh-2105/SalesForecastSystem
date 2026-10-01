@@ -10,5 +10,9 @@ namespace SalesForecastSystem.Core.Interfaces.Services
     public interface ITokenService
     {
         Task<LoginResponse> CreateAccessTokenAsync(LoginUserResponse user, CancellationToken cancellationToken = default);
+        Task<LoginResponse?> RefreshAccessTokenAsync(
+            Guid sessionId,
+            int userId,
+            CancellationToken cancellationToken = default);
     }
 }
