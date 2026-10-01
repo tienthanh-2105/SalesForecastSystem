@@ -91,13 +91,53 @@ app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = context =>
     {
-        if (!context.File.Name.Equals("index.html", StringComparison.OrdinalIgnoreCase)) return;
+        if (!context.File.Name.Equals("index.html", StringComparison.OrdinalIgnoreCase))
+        {
+            if (context.Context.Request.Path.StartsWithSegments("/assets"))
+                context.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+            return;
+        }
         context.Context.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
         context.Context.Response.Headers.Pragma = "no-cache";
         context.Context.Response.Headers.Expires = "0";
     }
 });
+app.Use(async (context, next) =>
+{
+    // Public static resources are served above; missing resources must stay 404.
+    if (context.GetEndpoint() is null &&
+        (context.Request.Path.StartsWithSegments("/assets") ||
+         context.Request.Path.StartsWithSegments("/uploads") ||
+         Path.HasExtension(context.Request.Path.Value)))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+    await next(context);
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+// Only known UI routes may use the SPA shell. API/assets/uploads never fall back to HTML.
+foreach (var route in new[] { "/", "/login", "/categories", "/products", "/warehouses", "/orders", "/users", "/forbidden" })
+{
+    app.MapGet(route, async (HttpContext context, IWebHostEnvironment environment) =>
+    {
+        context.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
+        context.Response.ContentType = "text/html; charset=utf-8";
+        await context.Response.SendFileAsync(Path.Combine(environment.WebRootPath, "index.html"));
+    }).AllowAnonymous();
+}
+app.MapFallback(async (HttpContext context, IWebHostEnvironment environment) =>
+{
+    var path = context.Request.Path;
+    context.Response.StatusCode = StatusCodes.Status404NotFound;
+    if (!HttpMethods.IsGet(context.Request.Method) ||
+        path.StartsWithSegments("/api") || path.StartsWithSegments("/swagger") ||
+        path.StartsWithSegments("/uploads") || path.StartsWithSegments("/assets") ||
+        Path.HasExtension(path.Value)) return;
+    context.Response.ContentType = "text/html; charset=utf-8";
+    context.Response.Headers.CacheControl = "no-store";
+    await context.Response.SendFileAsync(Path.Combine(environment.WebRootPath, "index.html"));
+}).AllowAnonymous();
 app.Run();

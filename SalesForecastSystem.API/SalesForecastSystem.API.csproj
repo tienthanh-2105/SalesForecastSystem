@@ -17,4 +17,9 @@
     <ProjectReference Include="..\SalesForecastSystem.Infrastructure\SalesForecastSystem.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Runtime uploads belong to the deployment, not the source build. -->
+    <Content Update="wwwroot\uploads\**" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
 </Project>
