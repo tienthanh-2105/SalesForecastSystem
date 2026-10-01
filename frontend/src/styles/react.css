@@ -1,0 +1,79 @@
+@import "../../../SalesForecastSystem.API/wwwroot/css/app.css";
+.admin-nav-item {
+  text-decoration: none;
+}
+.react-modal {
+  border: 0;
+  border-radius: 16px;
+  padding: 0;
+  width: min(650px, 95vw);
+  max-height: 90vh;
+  color: var(--ink);
+  box-shadow: 0 20px 80px #0004;
+}
+.react-modal.wide {
+  width: min(1100px, 95vw);
+}
+.react-modal::backdrop {
+  background: #09253299;
+}
+.react-modal form {
+  display: grid;
+  gap: 16px;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.form-grid label {
+  display: grid;
+  gap: 6px;
+}
+.react-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2000;
+  background: #08756b;
+  color: white;
+  padding: 16px 24px;
+  border-radius: 12px;
+}
+.product-preview {
+  max-width: 180px;
+  max-height: 160px;
+  object-fit: contain;
+}
+.management-toolbar {
+  flex-wrap: wrap;
+}
+.table-action {
+  margin-left: 4px;
+}
+.sidebar-backdrop {
+  border: 0;
+}
+.data-card td {
+  max-width: 350px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 767px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .topbar-actions {
+    flex-wrap: wrap;
+  }
+  .topbar-email {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .admin-topbar {
+    height: auto;
+    min-height: 70px;
+    gap: 12px;
+    padding: 12px;
+  }
+}

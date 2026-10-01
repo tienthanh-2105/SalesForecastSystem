@@ -40,6 +40,13 @@ bld/
 
 # Product images uploaded at runtime
 /SalesForecastSystem.API/wwwroot/uploads/products/
+/frontend/dist/
+/frontend/test-results/
+/frontend/playwright-report/
+/frontend/.env
+/frontend/.env.local
+/frontend/*.tsbuildinfo
+/tmp/
 
 # Visual Studio 2017 auto generated files
 Generated\ Files/
