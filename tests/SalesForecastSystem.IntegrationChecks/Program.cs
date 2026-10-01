@@ -11,7 +11,8 @@ using Microsoft.IdentityModel.Tokens;
 using SalesForecastSystem.Infrastructure.Data;
 using SalesForecastSystem.Infrastructure.Entities;
 
-var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
+var root = Environment.GetEnvironmentVariable("TEST_PROJECT_ROOT")
+    ?? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
 var connection = Environment.GetEnvironmentVariable("TEST_SQL_CONNECTION")
     ?? @"Server=.\SQLEXPRESS;Database=SalesForecastingDB;Trusted_Connection=True;TrustServerCertificate=True";
 await using var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(connection).Options);
@@ -31,7 +32,8 @@ var passed = 0;
 
 async Task StartApi()
 {
-    var sourceDirectory = Path.Combine(root, "SalesForecastSystem.API/bin/Debug/net8.0");
+    var sourceDirectory = Environment.GetEnvironmentVariable("TEST_API_BIN")
+        ?? Path.Combine(root, "SalesForecastSystem.API/bin/Debug/net8.0");
     apiHostDirectory = Path.Combine(Path.GetTempPath(), "SalesForecastSystem.IntegrationChecks", Guid.NewGuid().ToString("N"));
     foreach (var sourceFile in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
     {

@@ -7,6 +7,9 @@ $temporaryRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
 $scriptDirectory = Join-Path $temporaryRoot "SalesForecastDisposable_$testId"
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $oldConnection = $env:TEST_SQL_CONNECTION
+$oldProjectRoot = $env:TEST_PROJECT_ROOT
+$oldApiBin = $env:TEST_API_BIN
+$buildOutput = Join-Path $projectRoot "tmp/disposable-integration-build/$testId"
 
 try {
     New-Item -ItemType Directory -Path $scriptDirectory | Out-Null
@@ -23,11 +26,15 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Database setup failed: $script" }
     }
     $env:TEST_SQL_CONNECTION = "Server=$Server;Database=$databaseName;Trusted_Connection=True;TrustServerCertificate=True"
-    & dotnet run --project (Join-Path $projectRoot 'tests/SalesForecastSystem.IntegrationChecks') -- --full-flow
+    $env:TEST_PROJECT_ROOT = $projectRoot
+    $env:TEST_API_BIN = Join-Path $buildOutput 'Debug/net8.0'
+    & dotnet run --project (Join-Path $projectRoot 'tests/SalesForecastSystem.IntegrationChecks') "-p:BaseOutputPath=$buildOutput/" -- --full-flow
     if ($LASTEXITCODE -ne 0) { throw "Disposable integration checks failed (exit $LASTEXITCODE)." }
 }
 finally {
     $env:TEST_SQL_CONNECTION = $oldConnection
+    $env:TEST_PROJECT_ROOT = $oldProjectRoot
+    $env:TEST_API_BIN = $oldApiBin
     if ($databaseName -match '^SalesForecastTest_[0-9a-f]{32}$') {
         & sqlcmd -S $Server -E -C -I -b -Q "USE master; IF DB_ID(N'$databaseName') IS NOT NULL BEGIN ALTER DATABASE [$databaseName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [$databaseName]; END"
         if ($LASTEXITCODE -ne 0) { Write-Warning "Could not drop disposable database $databaseName." }
