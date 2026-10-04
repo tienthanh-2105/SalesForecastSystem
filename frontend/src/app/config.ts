@@ -21,11 +21,20 @@ export const sections: Record<
     icon: "buildings",
     heading: "Danh sách kho hàng",
   },
+  purchases: {
+    label: "Nhập hàng", title: "QUẢN LÝ NHẬP HÀNG", icon: "box-arrow-in-down", heading: "Phiếu nhập hàng",
+  },
   orders: {
     label: "Đơn hàng",
     title: "QUẢN LÝ ĐƠN HÀNG",
     icon: "receipt",
     heading: "Danh sách đơn hàng",
+  },
+  customers: {
+    label: "Khách hàng",
+    title: "QUẢN LÝ LỊCH SỬ ĐƠN HÀNG CỦA KHÁCH HÀNG",
+    icon: "person-lines-fill",
+    heading: "Lịch sử đơn hàng của khách hàng",
   },
   users: {
     label: "Người dùng",
@@ -41,8 +50,8 @@ export const roleLabels: Record<Role, string> = {
 };
 export const allowed = (role: Role, section: string) =>
   role === "Admin" ||
-  (role === "WarehouseManager" && section === "warehouses") ||
-  (role === "SalesStaff" && section === "orders");
+  (role === "WarehouseManager" && ["warehouses", "purchases"].includes(section)) ||
+  (role === "SalesStaff" && ["orders", "customers"].includes(section));
 export const home = (role: Role) =>
   role === "Admin"
     ? "/categories"

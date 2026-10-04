@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { api, ApiError, send } from "../../lib/api";
-import type { Category, Product } from "../../types";
+import type { Category, Page, Product } from "../../types";
+import { code } from "../../lib/format";
 import { Modal } from "../../components/Modal";
 import { validateImage } from "./image";
 interface Fields {
@@ -13,7 +14,7 @@ interface Fields {
   description: string;
   salePrice: number;
   minimumStockLevel: number;
-  isActive: boolean;
+  isActive: string;
 }
 export function ProductForm({
   entity,
@@ -28,6 +29,13 @@ export function ProductForm({
     queryKey: ["categories"],
     queryFn: () => api<Category[]>("/api/categories"),
   });
+  const latest = useQuery({
+    queryKey: ["product-code-preview"],
+    queryFn: () => api<Page<Product>>("/api/products?page=1&pageSize=1&sortBy=CreatedAt&sortDirection=Desc"),
+    enabled: !entity,
+    staleTime: 0,
+  });
+  const units = Array.from(new Set(["Cái", "Chiếc", "Bộ", "Hộp", "Máy", ...(entity?.unit ? [entity.unit] : [])]));
   const { data: stock } = useQuery({
     queryKey: ["stock", entity?.productId],
     queryFn: () =>
@@ -45,11 +53,11 @@ export function ProductForm({
       sku: entity?.sku || "",
       name: entity?.name || "",
       categoryId: entity?.categoryId,
-      unit: entity?.unit || "Cái",
+      unit: entity?.unit || "",
       description: entity?.description || "",
       salePrice: entity?.salePrice || 0,
       minimumStockLevel: entity?.minimumStockLevel || 0,
-      isActive: entity?.isActive ?? true,
+      isActive: String(entity?.isActive ?? true),
     },
   });
   const [error, setError] = useState("");
@@ -105,7 +113,8 @@ export function ProductForm({
                 unit: values.unit.trim(),
                 categoryId: Number(values.categoryId),
                 salePrice: Number(values.salePrice),
-                minimumStockLevel: Number(values.minimumStockLevel),
+                minimumStockLevel: entity ? Number(values.minimumStockLevel) : 0,
+                isActive: values.isActive === "true",
                 description: values.description.trim() || null,
                 imageUrl: image,
                 ...(entity ? { rowVersion: entity.rowVersion } : {}),
@@ -140,15 +149,16 @@ export function ProductForm({
             <input
               className="form-control"
               readOnly
+              aria-label="Mã hệ thống"
               value={
                 entity
-                  ? `SP-${String(entity.productId).padStart(4, "0")}`
-                  : "Tự động khi lưu"
+                  ? code("D", entity.productId)
+                  : latest.data ? code("D", (latest.data.items[0]?.productId || 0) + 1) : latest.isError ? "Chưa tải được mã dự kiến" : "Đang tải mã..."
               }
             />
           </label>
           <label>
-            Mã sản phẩm (SKU) *
+            <span>Mã sản phẩm (SKU) <span className="text-danger">*</span></span>
             <input
               className="form-control"
               required
@@ -158,7 +168,7 @@ export function ProductForm({
             />
           </label>
           <label>
-            Tên sản phẩm *
+            <span>Tên sản phẩm <span className="text-danger">*</span></span>
             <input
               className="form-control"
               required
@@ -170,9 +180,10 @@ export function ProductForm({
             />
           </label>
           <label>
-            Danh mục *
+            <span>Danh mục <span className="text-danger">*</span></span>
             <select
               className="form-select"
+              aria-label="Danh mục *"
               required
               {...register("categoryId", {
                 required: true,
@@ -188,16 +199,19 @@ export function ProductForm({
             </select>
           </label>
           <label>
-            Đơn vị *
-            <input
-              className="form-control"
+            <span>Đơn vị <span className="text-danger">*</span></span>
+            <select
+              className="form-select"
+              aria-label="Đơn vị *"
               required
-              maxLength={30}
               {...register("unit", { required: true })}
-            />
+            >
+              <option value="">Chọn đơn vị</option>
+              {units.map(unit => <option key={unit} value={unit}>{unit}</option>)}
+            </select>
           </label>
           <label>
-            Giá bán *
+            <span>Giá bán <span className="text-danger">*</span></span>
             <input
               className="form-control"
               type="number"
@@ -213,6 +227,7 @@ export function ProductForm({
             <input
               className="form-control"
               type="number"
+              readOnly={!entity}
               min="0"
               max="2147483647"
               step="1"
@@ -261,7 +276,11 @@ export function ProductForm({
           <p>Tồn kho hiện tại: {stock?.quantityOnHand ?? "Đang tải..."}</p>
         )}
         <label>
-          <input type="checkbox" {...register("isActive")} /> Đang hoạt động
+          <span>Trạng thái <span className="text-danger">*</span></span>
+          <select className="form-select" aria-label="Trạng thái *" required {...register("isActive", { required: true })}>
+            <option value="true">Đang kinh doanh</option>
+            <option value="false">Ngừng kinh doanh</option>
+          </select>
         </label>
         <button className="btn btn-brand" disabled={isSubmitting || conflict}>
           {isSubmitting ? "Đang lưu..." : "Lưu sản phẩm"}

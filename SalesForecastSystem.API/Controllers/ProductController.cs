@@ -40,9 +40,9 @@ public sealed class ProductController(
     [HttpGet("{id:int}/stock")]
     [ProducesResponseType(typeof(ProductStockResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetStockAsync(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetStockAsync(int id, CancellationToken cancellationToken, [FromQuery, System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)] int? warehouseId = null)
     {
-        var result = await productService.GetStockAsync(id, cancellationToken);
+        var result = await productService.GetStockAsync(id, cancellationToken, warehouseId);
         return FromServiceResult(result, Ok);
     }
 

@@ -40,7 +40,7 @@ export function Toolbar({
         <input
           className="form-control"
           aria-label="Tìm kiếm"
-          placeholder={`Tìm kiếm ${sections[section].label.toLowerCase()}...`}
+          placeholder={section === "customers" ? "Tìm tên, điện thoại, email khách hàng..." : `Tìm kiếm ${sections[section].label.toLowerCase()}...`}
           type="search"
           maxLength={200}
           value={params.get("search") || ""}
@@ -96,7 +96,7 @@ export function Toolbar({
           <i className="bi bi-arrow-clockwise me-2" />
           Làm mới
         </button>
-        {section !== "users" && (
+        {section !== "customers" && (
           <button className="btn btn-brand" onClick={add}>
             <i className="bi bi-plus-lg" />
             Thêm{" "}

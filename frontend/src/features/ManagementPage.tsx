@@ -4,11 +4,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, send } from "../lib/api";
 import type {
   Category,
+  Customer,
   Order,
   Page,
   Product,
   Section,
   Warehouse,
+  UserRow,
 } from "../types";
 import { sections } from "../app/config";
 import { DataTable, rowId, type Row } from "../components/DataTable";
@@ -19,6 +21,9 @@ import { CategoryForm } from "./categories/CategoryForm";
 import { WarehouseForm } from "./warehouses/WarehouseForm";
 import { ProductForm } from "./products/ProductForm";
 import { OrderForm } from "./orders/OrderForm";
+import { CustomerForm } from "./customers/CustomerForm";
+import { CustomerHistory } from "./customers/CustomerHistory";
+import { UserForm } from "./users/UserForm";
 interface Editor {
   entity: Row | null;
   view: boolean;
@@ -28,6 +33,7 @@ export function ManagementPage({ section }: { section: Section }) {
   const client = useQueryClient();
   const toast = useToast();
   const [editor, setEditor] = useState<Editor | null>(null);
+  const [history, setHistory] = useState<Customer | null>(null);
   const [confirmation, setConfirmation] = useState<{
     row: Row;
     kind: string;
@@ -122,6 +128,10 @@ export function ManagementPage({ section }: { section: Section }) {
   };
   const action = async (row: Row, kind: string) => {
     setError("");
+    if (section === "customers" && kind === "history") {
+      setHistory(row as Customer);
+      return;
+    }
     if (kind === "edit" || kind === "view") {
       setBusy(true);
       try {
@@ -238,7 +248,12 @@ export function ManagementPage({ section }: { section: Section }) {
             onClose={() => setEditor(null)}
             onSaved={saved}
           />
+        ) : section === "customers" ? (
+          <CustomerForm entity={editor.entity as Customer | null} onClose={() => setEditor(null)} onSaved={saved} />
+        ) : section === "users" ? (
+          <UserForm entity={editor.entity as UserRow | null} onClose={() => setEditor(null)} onSaved={saved} />
         ) : null)}
+      {history && <CustomerHistory customer={history} onClose={() => setHistory(null)} />}
       {confirmation && (
         <Modal
           title="Xác nhận thao tác"

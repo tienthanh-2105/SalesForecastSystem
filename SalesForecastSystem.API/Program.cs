@@ -119,7 +119,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 // Only known UI routes may use the SPA shell. API/assets/uploads never fall back to HTML.
-foreach (var route in new[] { "/", "/login", "/categories", "/products", "/warehouses", "/orders", "/users", "/forbidden" })
+foreach (var route in new[] { "/", "/login", "/categories", "/products", "/warehouses", "/purchases", "/orders", "/customers", "/users", "/forbidden" })
 {
     app.MapGet(route, async (HttpContext context, IWebHostEnvironment environment) =>
     {

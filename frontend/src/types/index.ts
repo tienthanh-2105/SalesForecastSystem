@@ -56,8 +56,17 @@ export interface Product {
 export interface Customer {
   customerId: number;
   fullName: string;
-  phoneNumber?: string;
-  address?: string;
+  email?: string | null;
+  phoneNumber?: string | null;
+  address?: string | null;
+  isActive?: boolean;
+}
+export interface CustomerOrder {
+  salesOrderId: number;
+  orderNumber: string;
+  orderDate: string;
+  status: OrderStatus;
+  createdAt: string;
 }
 export type OrderStatus =
   "Draft" | "Pending" | "Delivering" | "Completed" | "Cancelled";
@@ -84,6 +93,7 @@ export interface Order {
 }
 export interface UserRow {
   userId: number;
+  code?: string;
   email: string;
   fullName: string;
   roleName: Role;
@@ -92,4 +102,15 @@ export interface UserRow {
   createdAt: string;
 }
 export type Section =
-  "categories" | "products" | "warehouses" | "orders" | "users";
+  "categories" | "products" | "warehouses" | "purchases" | "orders" | "customers" | "users";
+export interface Supplier {
+  supplierId: number; name: string; isActive: boolean;
+}
+export interface PurchaseItem {
+  purchaseOrderItemId?: number; productId: number; quantity: number; unitPrice: number;
+}
+export interface Purchase {
+  purchaseOrderId: number; orderNumber: string; warehouseId: number; supplierId: number;
+  orderDate: string; status: "Draft" | "Posted" | "Cancelled"; notes?: string | null;
+  items?: PurchaseItem[]; totalAmount?: number;
+}

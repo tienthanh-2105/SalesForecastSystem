@@ -42,6 +42,7 @@ public class UserWriteRequest
 
     [Required(ErrorMessage = "Email is required.")]
     [StringLength(100, ErrorMessage = "Email cannot exceed 100 characters.")]
+    [RegularExpression(AccountValidation.EmailPattern, ErrorMessage = "Email không đúng định dạng (ví dụ: ten@example.com).")]
     public string Email { get; set; } = string.Empty;
 
     [StringLength(15, ErrorMessage = "Phone number cannot exceed 15 characters.")]
@@ -56,6 +57,7 @@ public sealed class UserCreateRequest : UserWriteRequest, IValidatableObject
 {
     [Required(ErrorMessage = "Password is required.")]
     [MinLength(12, ErrorMessage = "Password must contain at least 12 characters.")]
+    [RegularExpression(AccountValidation.PasswordPattern, ErrorMessage = "Mật khẩu phải có ít nhất một chữ cái (hoa hoặc thường) và một chữ số.")]
     public string Password { get; set; } = string.Empty;
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext) =>
@@ -87,6 +89,7 @@ public sealed class ResetPasswordRequest : IValidatableObject
 {
     [Required(ErrorMessage = "New password is required.")]
     [MinLength(12, ErrorMessage = "New password must contain at least 12 characters.")]
+    [RegularExpression(AccountValidation.PasswordPattern, ErrorMessage = "Mật khẩu phải có ít nhất một chữ cái (hoa hoặc thường) và một chữ số.")]
     public string NewPassword { get; set; } = string.Empty;
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

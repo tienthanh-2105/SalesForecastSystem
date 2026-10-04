@@ -26,7 +26,7 @@ export function LoginPage() {
         replace
         to={
           requested &&
-          /^\/(categories|products|warehouses|orders|users)(\?|$)/.test(
+          /^\/(categories|products|warehouses|purchases|orders|customers|users)(\?|$)/.test(
             requested,
           )
             ? requested

@@ -32,7 +32,7 @@ export function Layout() {
             .filter(([key]) => allowed(session.user.role, key))
             .map(([key, config]) => (
               <Fragment key={key}>
-                {key !== "products" && (
+                {key !== "products" && key !== "customers" && key !== "purchases" && (
                   <span
                     className={`admin-nav-label ${key === "categories" ? "fs-6" : ""}`}
                   >
@@ -75,7 +75,10 @@ export function Layout() {
             </h1>
           </div>
           <div className="topbar-actions">
-            <span className="topbar-email">{session.user.email}</span>
+            <div className="topbar-user">
+              <strong className="topbar-user-name">{session.user.fullName}</strong>
+              <span className="topbar-email">{session.user.email}</span>
+            </div>
             <span className="topbar-role">{roleLabels[session.user.role]}</span>
             <button
               className="btn btn-outline-danger btn-sm"

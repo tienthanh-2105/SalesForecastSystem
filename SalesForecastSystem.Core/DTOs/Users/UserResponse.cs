@@ -9,4 +9,5 @@ public sealed record UserResponse(
     string RoleName,
     string Status,
     DateTime CreatedAt,
-    DateTime? UpdatedAt);
+    DateTime? UpdatedAt,
+    string Code);

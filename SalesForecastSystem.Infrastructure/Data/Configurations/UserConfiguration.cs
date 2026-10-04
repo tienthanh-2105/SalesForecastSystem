@@ -10,6 +10,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
     {
         builder.ToTable("Users", "dbo");
         builder.HasKey(user => user.UserId);
+        builder.Property(user => user.Code).HasMaxLength(23).IsUnicode(false).ValueGeneratedOnAddOrUpdate();
+        builder.ToTable("Users", "dbo", table => table.UseSqlOutputClause(false));
         builder.Property(user => user.FullName).HasMaxLength(100).IsRequired();
         builder.Property(user => user.Email).HasMaxLength(100).IsUnicode(false).IsRequired();
         builder.Property(user => user.PasswordHash).HasMaxLength(255).IsUnicode(false).IsRequired();

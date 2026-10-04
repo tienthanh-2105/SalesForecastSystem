@@ -13,6 +13,13 @@ namespace SalesForecastSystem.API.Controllers;
 [Authorize(Roles = RoleNames.Admin)]
 public sealed class UserController(IUserService userService) : ApiControllerBase
 {
+    [HttpGet("next-code")]
+    public async Task<IActionResult> GetNextCodeAsync(CancellationToken cancellationToken) =>
+        Ok(new { code = await userService.GetNextCodeAsync(cancellationToken) });
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteAsync(int id, CancellationToken cancellationToken) =>
+        FromServiceResult(await userService.DeleteAsync(id, CurrentUserId(), cancellationToken), _ => NoContent());
     [HttpGet]
     [ProducesResponseType(typeof(PagedResponse<UserResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

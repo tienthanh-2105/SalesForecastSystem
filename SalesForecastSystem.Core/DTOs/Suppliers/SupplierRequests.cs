@@ -17,7 +17,9 @@ public sealed class SupplierRequest : IValidatableObject
 {
     [Required, StringLength(200)]
     public string Name { get; set; } = string.Empty;
-    [StringLength(20)]
+    [Required(ErrorMessage = "Vui lòng nhập mã số thuế doanh nghiệp.")]
+    [StringLength(14)]
+    [RegularExpression(@"[0-9]{10}(-[0-9]{3})?", ErrorMessage = "Mã số thuế phải gồm 10 chữ số hoặc có dạng 0123456789-001.")]
     public string? TaxCode { get; set; }
     [StringLength(100), EmailAddress]
     public string? Email { get; set; }

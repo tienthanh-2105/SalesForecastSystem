@@ -37,6 +37,8 @@ public sealed class SupplierService(AppDbContext context) : ISupplierService
 
     public async Task<ServiceResult<SupplierResponse>> CreateAsync(SupplierRequest request, CancellationToken cancellationToken = default)
     {
+        if (await context.Suppliers.AnyAsync(x => x.TaxCode == request.TaxCode, cancellationToken))
+            return DuplicateTaxCode();
         var item = new Supplier();
         Apply(item, request);
         context.Suppliers.Add(item);
@@ -48,6 +50,8 @@ public sealed class SupplierService(AppDbContext context) : ISupplierService
     {
         var item = await context.Suppliers.SingleOrDefaultAsync(x => x.SupplierId == id, cancellationToken);
         if (item is null) return NotFound();
+        if (await context.Suppliers.AnyAsync(x => x.SupplierId != id && x.TaxCode == request.TaxCode, cancellationToken))
+            return DuplicateTaxCode();
         Apply(item, request);
         var error = await SaveAsync(cancellationToken);
         return error ?? ServiceResult<SupplierResponse>.Success(ToResponse(item));
@@ -68,7 +72,7 @@ public sealed class SupplierService(AppDbContext context) : ISupplierService
         try { await context.SaveChangesAsync(cancellationToken); }
         catch (DbUpdateConcurrencyException) { return NotFound(); }
         catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 or 2627 })
-        { return ServiceResult<SupplierResponse>.Failure(ServiceErrorType.Conflict, "Supplier tax code already exists."); }
+        { return DuplicateTaxCode(); }
         return null;
     }
 
@@ -85,4 +89,5 @@ public sealed class SupplierService(AppDbContext context) : ISupplierService
     private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     private static SupplierResponse ToResponse(Supplier item) => new(item.SupplierId, item.Name, item.TaxCode, item.Email, item.PhoneNumber, item.Address, item.IsActive);
     private static ServiceResult<SupplierResponse> NotFound() => ServiceResult<SupplierResponse>.Failure(ServiceErrorType.NotFound, "Supplier was not found.");
+    private static ServiceResult<SupplierResponse> DuplicateTaxCode() => ServiceResult<SupplierResponse>.Failure(ServiceErrorType.Conflict, "Mã số thuế đã tồn tại trong danh sách nhà cung cấp.", nameof(SupplierRequest.TaxCode));
 }

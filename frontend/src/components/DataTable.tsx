@@ -1,5 +1,6 @@
 import type {
   Category,
+  Customer,
   Order,
   Product,
   Section,
@@ -9,7 +10,7 @@ import type {
 import { code, date, money } from "../lib/format";
 import { roleLabels } from "../app/config";
 import { StatusBadge } from "./StatusBadge";
-export type Row = Category | Product | Warehouse | Order | UserRow;
+export type Row = Category | Product | Warehouse | Order | UserRow | Customer;
 export function rowId(section: Section, row: Row): number {
   return Number(
     section === "categories"
@@ -20,7 +21,9 @@ export function rowId(section: Section, row: Row): number {
           ? (row as Warehouse).warehouseId
           : section === "orders"
             ? (row as Order).salesOrderId
-            : (row as UserRow).userId,
+            : section === "customers"
+              ? (row as Customer).customerId
+              : (row as UserRow).userId,
   );
 }
 export function DataTable({
@@ -59,7 +62,10 @@ export function DataTable({
                 "Tổng tiền",
                 "Trạng thái",
               ]
-            : [
+            : section === "customers"
+              ? ["Mã khách hàng", "Họ tên", "Số điện thoại", "Email", "Địa chỉ"]
+              : [
+                "Mã người dùng",
                 "Tên người dùng",
                 "Email",
                 "Số điện thoại",
@@ -75,14 +81,14 @@ export function DataTable({
             {headers.map((h) => (
               <th key={h}>{h}</th>
             ))}
-            {section !== "users" && <th>Thao tác</th>}
+            <th>Thao tác</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={rowId(section, row)}>
               <Cells section={section} row={row} categories={categories} />
-              {section !== "users" && (
+              {(
                 <td className="text-end text-nowrap">
                   <div className="table-actions">
                     {section === "orders" ? (
@@ -97,7 +103,8 @@ export function DataTable({
                           icon="pencil"
                           onClick={() => action(row, "edit")}
                         />
-                        {(section !== "warehouses" ||
+                        {section === "customers" && <Action label="Lịch sử đơn hàng" icon="clock-history" onClick={() => action(row, "history")} />}
+                        {section !== "customers" && (section !== "users" || (row as UserRow).roleName !== "Admin") && (section !== "warehouses" ||
                           (row as Warehouse).isActive) && (
                           <Action
                             label={
@@ -163,19 +170,15 @@ function Cells({
         </td>
         <td>{p.sku}</td>
         <td>
-          {p.imageUrl && (
-            <img
-              src={p.imageUrl}
-              alt=""
-              width={36}
-              height={36}
-              className="me-2"
-            />
-          )}
-          {p.name}
-          <small className="table-secondary-text">
-            Tối thiểu: {p.minimumStockLevel}
-          </small>
+          <div className="product-cell product-list-cell">
+            <div className="product-list-thumb">
+              {p.imageUrl ? <img src={p.imageUrl} alt={p.name} /> : <i aria-hidden="true" className="bi bi-image" />}
+            </div>
+            <div>
+              <span className="table-primary-text">{p.name}</span>
+              <small className="table-secondary-text">Tối thiểu: {p.minimumStockLevel}</small>
+            </div>
+          </div>
         </td>
         <td>
           {p.categoryName ||
@@ -236,9 +239,14 @@ function Cells({
       </>
     );
   }
+  if (section === "customers") {
+    const c = row as Customer;
+    return <><td>{code("KH", c.customerId)}</td><td>{c.fullName}</td><td>{c.phoneNumber || "—"}</td><td>{c.email || "—"}</td><td>{c.address || "—"}</td></>;
+  }
   const u = row as UserRow;
   return (
     <>
+      <td><span className="id-badge">{u.code || code("ND", u.userId)}</span></td>
       <td>{u.fullName}</td>
       <td>{u.email}</td>
       <td>{u.phoneNumber || "—"}</td>
@@ -258,17 +266,22 @@ function Action({
   label,
   icon,
   onClick,
+  disabled = false,
+  reason,
 }: {
   label: string;
   icon: string;
   onClick: () => void;
+  disabled?: boolean;
+  reason?: string;
 }) {
   return (
     <button
       type="button"
       className="table-action"
-      title={label}
+      title={reason || label}
       aria-label={label}
+      disabled={disabled}
       onClick={onClick}
     >
       <i className={`bi bi-${icon}`} />
@@ -285,15 +298,15 @@ function OrderActions({
   return (
     <>
       <Action label="Xem chi tiết" icon="eye" onClick={() => action("view")} />
+      <Action label="Sửa" icon="pencil" onClick={() => action("edit")} disabled={row.status !== "Draft"} reason={row.status !== "Draft" ? "Chỉ được sửa đơn hàng ở trạng thái Nháp." : undefined} />
+      <Action label="Xóa" icon="trash" onClick={() => action("delete")} disabled={row.status !== "Draft"} reason={row.status !== "Draft" ? "Chỉ được xóa đơn hàng ở trạng thái Nháp; đơn đã xác nhận dùng thao tác Hủy đơn." : undefined} />
       {row.status === "Draft" && (
         <>
-          <Action label="Sửa" icon="pencil" onClick={() => action("edit")} />
           <Action
             label="Xác nhận đơn"
             icon="send-check"
             onClick={() => action("submit")}
           />
-          <Action label="Xóa" icon="trash" onClick={() => action("delete")} />
         </>
       )}
       {row.status === "Pending" && (

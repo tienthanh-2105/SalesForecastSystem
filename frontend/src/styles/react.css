@@ -1,6 +1,51 @@
 @import "../../../SalesForecastSystem.API/wwwroot/css/app.css";
+/* React theme: larger readable text and a white sidebar. */
+.admin-sidebar {
+  background: #ffffff;
+  color: #171717;
+  border-right: 1px solid #e2eaf1;
+  overflow-y: auto;
+}
+.admin-brand { border-bottom-color: #e2eaf1; }
+.admin-brand strong { color: #171717; font-size: 1.15rem; }
+.admin-brand small { color: #687c86; font-size: .85rem; }
+.admin-nav-label { color: #559acb; font-size: .85rem; letter-spacing: .06em; }
+.admin-nav-item { color: #171717; font-size: 1rem; min-height: 50px; }
+.admin-nav-item i { font-size: 1.2rem; }
+.admin-nav-item:hover { color: #171717; background: #edf6fd; }
+.admin-nav-item.active {
+  color: #171717;
+  background: #d5ebfc;
+  box-shadow: none;
+}
+.admin-nav-item:focus-visible { outline: 2px solid #559acb; outline-offset: 2px; }
+.admin-topbar h1.fs-6 { font-size: 1.15rem !important; }
+.topbar-email, .topbar-role { font-size: 1rem; }
+.topbar-user { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; min-width: 0; }
+.topbar-user-name { font-size: 1rem; color: #193747; }
+.admin-topbar { flex-wrap: wrap; }
+.management-search .form-control,
+.management-filters .form-select,
+.management-filters .form-control,
+.app-modal-body .form-control,
+.app-modal-body .form-select { font-size: 1rem; }
+.admin-table thead th, .order-items-table th { font-size: .85rem; }
+.admin-table tbody td { font-size: .95rem; }
+.id-badge { font-size: .9rem; }
+.status-badge { font-size: .85rem; }
+.table-secondary-text, .form-grid small { font-size: .85rem; }
+.app-modal-body label, .app-modal-body .form-label { font-size: 1rem; }
+.data-state, .data-card footer small { font-size: .95rem; }
+.login-header p, .login-options .form-check-label,
+.security-note, .field-hint { font-size: .9rem; }
+.login-page .form-label { font-size: 1rem; }
 .admin-nav-item {
   text-decoration: none;
+}
+@media (min-width: 992px) {
+  .admin-layout {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
 }
 .react-modal {
   border: 0;
@@ -12,8 +57,48 @@
   box-shadow: 0 20px 80px #0004;
 }
 .react-modal.wide {
-  width: min(1100px, 95vw);
+  width: min(1400px, 96vw);
 }
+.order-product-preview {
+  width: 120px;
+  height: 120px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid #e0e8ec;
+  border-radius: 10px;
+  background: #f4f7fa;
+}
+.order-product-preview img { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; max-width: 100%; max-height: 100%; object-fit: contain; }
+.order-entry-table { min-width: 1100px; }
+.order-entry-table td { vertical-align: top; }
+.order-entry-table th:first-child,
+.order-entry-table td:first-child { width: 38%; min-width: 420px; }
+.order-entry-table tbody td:not(:first-child) { padding-top: 36px; }
+.purchase-form-table { min-width: 1020px; }
+.purchase-filters { flex-wrap: wrap; min-width: 0; }
+.purchase-filters > .form-select,
+.purchase-filters > .form-control { width: 165px; flex: 0 0 165px; }
+.purchase-filters > .purchase-supplier-filter { width: 360px; max-width: 100%; flex: 0 0 360px; }
+@media (max-width: 767px) {
+  .purchase-filters > .form-select,
+  .purchase-filters > .form-control { width: 100%; flex: 0 0 auto; }
+}
+.purchase-form-table thead th { vertical-align: bottom; }
+.purchase-product-cell { min-width: 560px; width: 48%; }
+.purchase-product-fields {
+  display: grid;
+  grid-template-columns: minmax(180px, .85fr) minmax(220px, 1.15fr);
+  align-items: start;
+  gap: 10px 14px;
+}
+.purchase-product-image { grid-column: 1 / -1; margin: 0 !important; }
+.purchase-product-image.order-product-preview { width: 140px; height: 110px; }
+.purchase-value-cell { min-width: 125px; vertical-align: top !important; padding-top: 36px !important; }
+.purchase-line-total { white-space: nowrap; font-weight: 600; }
 .react-modal::backdrop {
   background: #09253299;
 }
@@ -30,6 +115,9 @@
   display: grid;
   gap: 6px;
 }
+.user-form-grid { align-items: start; }
+.user-code-field { grid-column: 1 / -1; }
+.user-form-grid .form-control, .user-form-grid .form-select { min-height: 44px; height: 44px; }
 .react-toast {
   position: fixed;
   bottom: 24px;
@@ -41,8 +129,33 @@
   border-radius: 12px;
 }
 .product-preview {
-  max-width: 180px;
-  max-height: 160px;
+  width: min(100%, 360px);
+  height: 280px;
+  object-fit: contain;
+  justify-self: center;
+  background: #f4f7fa;
+  border: 1px solid #e0e8ec;
+  border-radius: 12px;
+  padding: 12px;
+}
+.product-list-cell {
+  min-width: 260px;
+  gap: 16px;
+}
+.product-list-thumb {
+  width: 100px;
+  height: 100px;
+  flex: 0 0 100px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #e0e8ec;
+  border-radius: 10px;
+  background: #fff;
+}
+.product-list-thumb img {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 .management-toolbar {
@@ -51,6 +164,7 @@
 .table-action {
   margin-left: 4px;
 }
+.table-action:disabled { opacity: .4; cursor: not-allowed; }
 .sidebar-backdrop {
   border: 0;
 }

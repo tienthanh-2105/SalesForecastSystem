@@ -1,6 +1,8 @@
 import { useForm } from "react-hook-form";
 import { useState } from "react";
-import { send } from "../../lib/api";
+import { allPages, send } from "../../lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { code } from "../../lib/format";
 import type { Warehouse } from "../../types";
 import { Modal } from "../../components/Modal";
 export function WarehouseForm({
@@ -12,6 +14,13 @@ export function WarehouseForm({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const warehouses = useQuery({
+    queryKey: ["warehouse-code-preview"],
+    queryFn: () => allPages<Warehouse>("/api/warehouses"),
+    enabled: !entity,
+    staleTime: 0,
+  });
+  const nextId = (warehouses.data || []).reduce((max, item) => Math.max(max, item.warehouseId), 0) + 1;
   const {
     register,
     handleSubmit,
@@ -39,7 +48,7 @@ export function WarehouseForm({
               entity ? "PUT" : "POST",
               {
                 name: v.name.trim(),
-                address: v.address.trim() || null,
+                address: v.address.trim(),
                 isActive: v.isActive === "true",
               },
             );
@@ -60,7 +69,11 @@ export function WarehouseForm({
           </div>
         )}
         <label>
-          Tên kho *
+          <span>Mã kho <span className="text-danger">*</span></span>
+          <input className="form-control" aria-label="Mã kho *" readOnly value={entity ? code("KHO", entity.warehouseId) : warehouses.data ? code("KHO", nextId) : warehouses.isError ? "Chưa tải được mã" : "Đang tải mã..."}/>
+        </label>
+        <label>
+          <span>Tên kho <span className="text-danger">*</span></span>
           <input
             className="form-control"
             required
@@ -72,19 +85,21 @@ export function WarehouseForm({
           />
         </label>
         <label>
-          Địa chỉ
+          <span>Địa chỉ <span className="text-danger">*</span></span>
           <input
             className="form-control"
+            required
             maxLength={255}
-            {...register("address")}
+            {...register("address", { required: true, validate: v => !!v.trim() })}
           />
         </label>
         <label>
-          Trạng thái
+          <span>Trạng thái <span className="text-danger">*</span></span>
           <select
             aria-label="Trạng thái"
             className="form-select"
-            {...register("isActive")}
+            required
+            {...register("isActive", { required: true })}
           >
             <option value="true">Đang hoạt động</option>
             <option value="false">Ngừng hoạt động</option>

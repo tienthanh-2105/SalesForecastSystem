@@ -9,7 +9,7 @@ public interface IProductService
         ProductQueryRequest request,
         CancellationToken cancellationToken = default);
     Task<ServiceResult<ProductResponse>> GetByIdAsync(int id, CancellationToken cancellationToken = default);
-    Task<ServiceResult<ProductStockResponse>> GetStockAsync(int id, CancellationToken cancellationToken = default);
+    Task<ServiceResult<ProductStockResponse>> GetStockAsync(int id, CancellationToken cancellationToken = default, int? warehouseId = null);
     Task<ServiceResult<ProductResponse>> CreateAsync(ProductRequest request, CancellationToken cancellationToken = default);
     Task<ServiceResult<ProductResponse>> UpdateAsync(int id, ProductUpdateRequest request, CancellationToken cancellationToken = default);
     Task<ServiceResult<bool>> DeactivateAsync(int id, CancellationToken cancellationToken = default);

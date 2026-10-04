@@ -11,6 +11,29 @@ namespace SalesForecastSystem.Infrastructure.Services;
 
 public sealed class UserService(AppDbContext context) : IUserService
 {
+    public async Task<string> GetNextCodeAsync(CancellationToken cancellationToken = default)
+    {
+        var next = await context.Database.SqlQuery<long>($"SELECT CASE WHEN last_used_value IS NULL THEN CONVERT(bigint, start_value) ELSE CONVERT(bigint, current_value) + CONVERT(bigint, increment) END AS [Value] FROM sys.sequences WHERE name = 'UserCodeSequence' AND schema_id = SCHEMA_ID('dbo')").SingleAsync(cancellationToken);
+        return $"ND-{next:D4}";
+    }
+
+    public async Task<ServiceResult<bool>> DeleteAsync(int id, int currentUserId, CancellationToken cancellationToken = default)
+    {
+        var user = await context.Users.Include(x => x.Role).SingleOrDefaultAsync(x => x.UserId == id, cancellationToken);
+        if (user is null) return ServiceResult<bool>.Failure(ServiceErrorType.NotFound, "Không tìm thấy người dùng.");
+        if (id == currentUserId || user.Role.Name == RoleNames.Admin)
+            return ServiceResult<bool>.Failure(ServiceErrorType.Validation, "Không thể xóa tài khoản quản trị viên hoặc tài khoản đang đăng nhập.");
+        if (await context.SalesOrders.AnyAsync(x => x.CreatedByUserId == id, cancellationToken)
+            || await context.PurchaseOrders.AnyAsync(x => x.CreatedByUserId == id, cancellationToken)
+            || await context.Database.SqlQuery<int>($"SELECT COUNT(*) AS [Value] FROM dbo.ForecastRuns WHERE RequestedByUserId = {id}").SingleAsync(cancellationToken) > 0)
+            return ServiceResult<bool>.Failure(ServiceErrorType.Conflict, "Người dùng có lịch sử đơn hàng, nhập hàng hoặc dự báo nên không thể xóa.");
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        await context.LoginSessions.Where(x => x.UserId == id).ExecuteDeleteAsync(cancellationToken);
+        context.Users.Remove(user);
+        try { await context.SaveChangesAsync(cancellationToken); await transaction.CommitAsync(cancellationToken); }
+        catch (DbUpdateException) { await transaction.RollbackAsync(cancellationToken); return ServiceResult<bool>.Failure(ServiceErrorType.Conflict, "Người dùng có dữ liệu liên quan hoặc đã thay đổi. Vui lòng tải lại."); }
+        return ServiceResult<bool>.Success(true);
+    }
     public async Task<PagedResponse<UserResponse>> GetPagedAsync(
         UserQueryRequest request,
         CancellationToken cancellationToken = default)
@@ -53,7 +76,8 @@ public sealed class UserService(AppDbContext context) : IUserService
                     user.Role.Name,
                     user.Status,
                     user.CreatedAt,
-                    user.UpdatedAt))
+                    user.UpdatedAt,
+                    user.Code))
                 .ToListAsync(cancellationToken);
 
         var totalPages = totalItems == 0
@@ -304,7 +328,8 @@ public sealed class UserService(AppDbContext context) : IUserService
         user.Role.Name,
         user.Status,
         user.CreatedAt,
-        user.UpdatedAt);
+        user.UpdatedAt,
+        user.Code);
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
     private static string? NormalizeOptional(string? value) =>

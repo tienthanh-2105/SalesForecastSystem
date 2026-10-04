@@ -61,6 +61,16 @@ public sealed class SalesService(AppDbContext context) : ISalesService
         if (order.Status != "Draft") return Conflict("Only draft sales orders can be edited.");
         var error = await ValidateReferencesAsync(request, cancellationToken);
         if (error is not null) return error;
+        if (order.WarehouseId != request.WarehouseId)
+        {
+            var items = await context.SalesOrderItems.Where(x => x.SalesOrderId == id).ToListAsync(cancellationToken);
+            foreach (var item in items)
+            {
+                var stock = await context.InventoryTransactions.Where(x => x.WarehouseId == request.WarehouseId && x.ProductId == item.ProductId)
+                    .SumAsync(x => (long?)x.Quantity, cancellationToken) ?? 0;
+                if (item.Quantity > stock) return Conflict($"Insufficient stock in selected warehouse. Product {item.ProductId}: available {stock}.");
+            }
+        }
         Apply(order, request);
         await SnapshotCustomerAsync(order, cancellationToken);
         try { await context.SaveChangesAsync(cancellationToken); }
@@ -72,6 +82,7 @@ public sealed class SalesService(AppDbContext context) : ISalesService
     public async Task<ServiceResult<SalesResponse>> AddItemAsync(long id, SalesItemRequest request, CancellationToken cancellationToken)
     {
         var error = await CheckDraftAndProductAsync(id, request.ProductId, cancellationToken);
+        error ??= await CheckStockAsync(id, request.ProductId, request.Quantity, cancellationToken);
         if (error is not null) return error;
         context.SalesOrderItems.Add(new SalesOrderItem
         {
@@ -86,6 +97,7 @@ public sealed class SalesService(AppDbContext context) : ISalesService
     public async Task<ServiceResult<SalesResponse>> UpdateItemAsync(long id, long itemId, SalesItemRequest request, CancellationToken cancellationToken)
     {
         var error = await CheckDraftAndProductAsync(id, request.ProductId, cancellationToken);
+        error ??= await CheckStockAsync(id, request.ProductId, request.Quantity, cancellationToken);
         if (error is not null) return error;
         var item = await context.SalesOrderItems.SingleOrDefaultAsync(x => x.SalesOrderId == id && x.SalesOrderItemId == itemId, cancellationToken);
         if (item is null) return ServiceResult<SalesResponse>.Failure(ServiceErrorType.NotFound, "Sales item was not found.");
@@ -131,6 +143,11 @@ public sealed class SalesService(AppDbContext context) : ISalesService
         if (!await context.SalesOrders.AnyAsync(x => x.SalesOrderId == id, cancellationToken)) return NotFound();
         if (!await context.SalesOrderItems.AnyAsync(x => x.SalesOrderId == id, cancellationToken))
             return Conflict("Sales order has no items.");
+        foreach (var item in await context.SalesOrderItems.Where(x => x.SalesOrderId == id).ToListAsync(cancellationToken))
+        {
+            var error = await CheckStockAsync(id, item.ProductId, item.Quantity, cancellationToken);
+            if (error is not null) return error;
+        }
         return await ChangeStatusAsync(id, "Draft", "Pending", cancellationToken);
     }
 
@@ -191,6 +208,14 @@ public sealed class SalesService(AppDbContext context) : ISalesService
         if (!await context.Products.AnyAsync(x => x.ProductId == productId && x.IsActive, cancellationToken))
             return ServiceResult<SalesResponse>.Failure(ServiceErrorType.Validation, "Active product is required.", nameof(SalesItemRequest.ProductId));
         return null;
+    }
+
+    private async Task<ServiceResult<SalesResponse>?> CheckStockAsync(long id, int productId, int quantity, CancellationToken cancellationToken)
+    {
+        var warehouseId = await context.SalesOrders.Where(x => x.SalesOrderId == id).Select(x => x.WarehouseId).SingleAsync(cancellationToken);
+        var stock = await context.InventoryTransactions.Where(x => x.WarehouseId == warehouseId && x.ProductId == productId)
+            .SumAsync(x => (long?)x.Quantity, cancellationToken) ?? 0;
+        return quantity > stock ? Conflict($"Insufficient stock in warehouse. Product {productId}: available {stock}, requested {quantity}.") : null;
     }
 
     private async Task<SalesResponse?> ReadAsync(long id, CancellationToken cancellationToken)

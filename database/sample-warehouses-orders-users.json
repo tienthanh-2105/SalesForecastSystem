@@ -1,0 +1,149 @@
+{
+  "metadata": {
+    "name": "Dữ liệu mẫu kho, người dùng và đơn hàng",
+    "date": "2026-10-01",
+    "testOnly": true,
+    "note": "Dữ liệu tổng hợp để nhập thủ công hoặc viết importer, không phải một request API. ID và mã hệ thống do backend cấp; các ref phải được thay bằng ID thực tế. Mật khẩu chỉ dùng trong môi trường thử nghiệm."
+  },
+  "users": [
+    {
+      "fullName": "Nguyễn Minh An",
+      "email": "admin.demo@example.com",
+      "phoneNumber": "0900000001",
+      "role": "Admin",
+      "password": "DemoAdmin!2026#01"
+    },
+    {
+      "fullName": "Trần Hoàng Nam",
+      "email": "warehouse.demo@example.com",
+      "phoneNumber": "0900000002",
+      "role": "WarehouseManager",
+      "password": "DemoWarehouse!2026#01"
+    },
+    {
+      "fullName": "Lê Ngọc Linh",
+      "email": "sales.demo@example.com",
+      "phoneNumber": "0900000003",
+      "role": "SalesStaff",
+      "password": "DemoSales!2026#01"
+    }
+  ],
+  "warehouses": [
+    {
+      "ref": "warehouse_hcm",
+      "request": {
+        "name": "Kho mẫu - TP. Hồ Chí Minh",
+        "address": "Địa chỉ mẫu: 100 Nguyễn Văn Linh, TP. Hồ Chí Minh",
+        "isActive": true
+      }
+    },
+    {
+      "ref": "warehouse_hanoi",
+      "request": {
+        "name": "Kho mẫu - Hà Nội",
+        "address": "Địa chỉ mẫu: 200 Nguyễn Trãi, Hà Nội",
+        "isActive": true
+      }
+    },
+    {
+      "ref": "warehouse_danang",
+      "request": {
+        "name": "Kho mẫu - Đà Nẵng",
+        "address": "Địa chỉ mẫu: 300 Nguyễn Văn Linh, Đà Nẵng",
+        "isActive": false
+      }
+    }
+  ],
+  "productReferences": [
+    { "sku": "XLA-IP17-256", "name": "iPhone 17 256GB", "sampleUnitPrice": 26990000 },
+    { "sku": "LAP-HP14AMD", "name": "HP Laptop 14 (AMD)", "sampleUnitPrice": 12900000 }
+  ],
+  "orders": [
+    {
+      "warehouseRef": "warehouse_hcm",
+      "createdByEmail": "sales.demo@example.com",
+      "targetStatus": "Draft",
+      "request": {
+        "orderNumber": "DEMO-DH-20261001-001",
+        "customerId": null,
+        "orderDate": "2026-10-01T09:00:00",
+        "shippingAddress": "Địa chỉ giao mẫu: 10 Lê Văn Việt, TP. Hồ Chí Minh",
+        "notes": "Đơn nháp: kiểm tra thêm, sửa và xóa dòng sản phẩm."
+      },
+      "items": [
+        { "sku": "XLA-IP17-256", "quantity": 1, "unitPrice": 26990000, "discount": 0 }
+      ],
+      "expectedTotalAmount": 26990000,
+      "transitions": []
+    },
+    {
+      "warehouseRef": "warehouse_hcm",
+      "createdByEmail": "sales.demo@example.com",
+      "targetStatus": "Pending",
+      "request": {
+        "orderNumber": "DEMO-DH-20261001-002",
+        "customerId": null,
+        "orderDate": "2026-10-01T09:30:00",
+        "shippingAddress": "Địa chỉ giao mẫu: 20 Lê Văn Sỹ, TP. Hồ Chí Minh",
+        "notes": "Đơn chờ xử lý: đã xác nhận, chưa bắt đầu giao."
+      },
+      "items": [
+        { "sku": "LAP-HP14AMD", "quantity": 1, "unitPrice": 12900000, "discount": 200000 }
+      ],
+      "expectedTotalAmount": 12700000,
+      "transitions": ["submit"]
+    },
+    {
+      "warehouseRef": "warehouse_hanoi",
+      "createdByEmail": "sales.demo@example.com",
+      "targetStatus": "Delivering",
+      "request": {
+        "orderNumber": "DEMO-DH-20261001-003",
+        "customerId": null,
+        "orderDate": "2026-10-01T10:00:00",
+        "shippingAddress": "Địa chỉ giao mẫu: 30 Cầu Giấy, Hà Nội",
+        "notes": "Đơn đang giao: kiểm tra thao tác xác nhận đã giao hoặc hủy."
+      },
+      "items": [
+        { "sku": "XLA-IP17-256", "quantity": 1, "unitPrice": 26990000, "discount": 500000 }
+      ],
+      "expectedTotalAmount": 26490000,
+      "transitions": ["submit", "dispatch"]
+    },
+    {
+      "warehouseRef": "warehouse_hcm",
+      "createdByEmail": "sales.demo@example.com",
+      "targetStatus": "Completed",
+      "request": {
+        "orderNumber": "DEMO-DH-20261001-004",
+        "customerId": null,
+        "orderDate": "2026-10-01T10:30:00",
+        "shippingAddress": "Địa chỉ giao mẫu: 40 Võ Văn Ngân, TP. Hồ Chí Minh",
+        "notes": "Đơn đã giao: chỉ xem, kiểm tra tổng tiền và tồn kho."
+      },
+      "items": [
+        { "sku": "XLA-IP17-256", "quantity": 1, "unitPrice": 26990000, "discount": 0 },
+        { "sku": "LAP-HP14AMD", "quantity": 1, "unitPrice": 12900000, "discount": 300000 }
+      ],
+      "expectedTotalAmount": 39590000,
+      "transitions": ["submit", "dispatch", "complete"]
+    },
+    {
+      "warehouseRef": "warehouse_hanoi",
+      "createdByEmail": "sales.demo@example.com",
+      "targetStatus": "Cancelled",
+      "request": {
+        "orderNumber": "DEMO-DH-20261001-005",
+        "customerId": null,
+        "orderDate": "2026-10-01T11:00:00",
+        "shippingAddress": "Địa chỉ giao mẫu: 50 Kim Mã, Hà Nội",
+        "notes": "Đơn đã hủy: khách đổi ý, kiểm tra bộ lọc trạng thái."
+      },
+      "items": [
+        { "sku": "LAP-HP14AMD", "quantity": 2, "unitPrice": 12900000, "discount": 500000 }
+      ],
+      "expectedTotalAmount": 25300000,
+      "transitions": ["cancel"]
+    }
+  ]
+}

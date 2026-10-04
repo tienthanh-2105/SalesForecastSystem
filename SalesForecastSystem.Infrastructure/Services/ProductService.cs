@@ -122,7 +122,8 @@ public sealed class ProductService(AppDbContext context) : IProductService
 
     public async Task<ServiceResult<ProductStockResponse>> GetStockAsync(
         int id,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        int? warehouseId = null)
     {
         var exists = await context.Products.AnyAsync(
             product => product.ProductId == id,
@@ -134,9 +135,9 @@ public sealed class ProductService(AppDbContext context) : IProductService
                 "Product was not found.");
         }
 
-        var quantityOnHand = await context.Database
-            .SqlQuery<long>($"SELECT COALESCE(SUM(CONVERT(bigint, Quantity)), CONVERT(bigint, 0)) AS [Value] FROM dbo.InventoryTransactions WHERE ProductId = {id}")
-            .SingleAsync(cancellationToken);
+        var quantityOnHand = warehouseId.HasValue
+            ? await context.Database.SqlQuery<long>($"SELECT COALESCE(SUM(CONVERT(bigint, Quantity)), CONVERT(bigint, 0)) AS [Value] FROM dbo.InventoryTransactions WHERE ProductId = {id} AND WarehouseId = {warehouseId.Value}").SingleAsync(cancellationToken)
+            : await context.Database.SqlQuery<long>($"SELECT COALESCE(SUM(CONVERT(bigint, Quantity)), CONVERT(bigint, 0)) AS [Value] FROM dbo.InventoryTransactions WHERE ProductId = {id}").SingleAsync(cancellationToken);
 
         return ServiceResult<ProductStockResponse>.Success(new ProductStockResponse(id, quantityOnHand));
     }

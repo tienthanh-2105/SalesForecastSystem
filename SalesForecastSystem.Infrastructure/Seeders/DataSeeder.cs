@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using SalesForecastSystem.Core.Helpers;
 using SalesForecastSystem.Infrastructure.Data;
@@ -21,6 +22,8 @@ public static class DataSeeder
         }
 
         ValidateAdminPassword(password);
+        if (normalizedEmail.Length > 100 || !Regex.IsMatch(normalizedEmail, AccountValidation.EmailPattern))
+            throw new InvalidOperationException("Admin email is invalid.");
 
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
         var adminRole = await context.Roles
@@ -57,10 +60,11 @@ public static class DataSeeder
         if (string.IsNullOrWhiteSpace(password) ||
             password == "THAY_BANG_MAT_KHAU_RIENG" ||
             password.Length < 12 ||
+            !Regex.IsMatch(password, AccountValidation.PasswordPattern) ||
             Encoding.UTF8.GetByteCount(password) > 72)
         {
             throw new InvalidOperationException(
-                "Admin password must contain at least 12 characters and no more than 72 UTF-8 bytes.");
+                "Admin password must contain at least 12 characters, a letter and a digit, and no more than 72 UTF-8 bytes.");
         }
     }
 }

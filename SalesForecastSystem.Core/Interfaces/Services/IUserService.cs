@@ -5,6 +5,8 @@ namespace SalesForecastSystem.Core.Interfaces.Services;
 
 public interface IUserService
 {
+    Task<string> GetNextCodeAsync(CancellationToken cancellationToken = default);
+    Task<ServiceResult<bool>> DeleteAsync(int id, int currentUserId, CancellationToken cancellationToken = default);
     Task<PagedResponse<UserResponse>> GetPagedAsync(
         UserQueryRequest request,
         CancellationToken cancellationToken = default);

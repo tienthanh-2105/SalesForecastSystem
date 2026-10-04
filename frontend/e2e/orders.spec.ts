@@ -69,6 +69,8 @@ test("5 trạng thái và các endpoint chuyển trạng thái", async ({ page }
   await expect(
     page.getByLabel("Tất cả trạng thái").locator("option"),
   ).toHaveCount(6);
+  await expect(page.getByRole("button", { name: "Sửa", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Xóa", exact: true })).toBeEnabled();
   for (const label of ["Xác nhận đơn", "Bắt đầu giao", "Xác nhận đã giao"]) {
     await page.getByRole("button", { name: label, exact: true }).click();
     await page.getByRole("button", { name: "Xác nhận", exact: true }).click();
@@ -76,7 +78,8 @@ test("5 trạng thái và các endpoint chuyển trạng thái", async ({ page }
   }
   await expect(
     page.getByRole("button", { name: "Sửa", exact: true }),
-  ).toHaveCount(0);
+  ).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Xóa", exact: true })).toBeDisabled();
   expect(calls).toEqual([
     "/api/sales/10/submit",
     "/api/sales/10/dispatch",
@@ -93,8 +96,11 @@ test("5 trạng thái và các endpoint chuyển trạng thái", async ({ page }
 test("lưu đơn một phần tải lại theo ID, không tạo trùng", async ({ page }) => {
   let created = 0,
     failItem = true;
+  let stockQuantity = 10;
   const current = {
     ...order,
+    customerName: "",
+    customerPhone: "",
     salesOrderId: 42,
     items: [] as typeof order.items,
   };
@@ -110,6 +116,14 @@ test("lưu đơn một phần tải lại theo ID, không tạo trùng", async (
         },
       });
     if (path === "/api/auth/me") return route.fulfill({ json: user });
+    if (path === "/api/products/1/stock") return route.fulfill({ json: { productId: 1, quantityOnHand: stockQuantity } });
+    if (path === "/api/customers" && request.method() === "POST") {
+      const contact = request.postDataJSON();
+      current.customerName = contact.fullName;
+      current.customerPhone = contact.phoneNumber;
+      return route.fulfill({ json: { ...contact, customerId: 1 } });
+    }
+    if (path === "/api/customers/1") return route.fulfill({ json: { customerId: 1, fullName: "Khách kiểm thử", phoneNumber: "0901234567", email: null } });
     if (path === "/api/sales" && request.method() === "POST") {
       created++;
       Object.assign(current, request.postDataJSON());
@@ -141,8 +155,23 @@ test("lưu đơn một phần tải lại theo ID, không tạo trùng", async (
   });
   await login(page);
   await page.getByRole("button", { name: "Thêm đơn hàng" }).click();
+  await page.getByLabel("Ngày đặt").fill("2026-10-02");
+  await page.getByRole("dialog").getByLabel("Khách hàng", { exact: true }).fill("Khách kiểm thử");
+  await page.getByLabel("Số điện thoại").fill("0901234567");
+  await page.getByLabel("Địa chỉ giao hàng").fill("Địa chỉ kiểm thử");
   await page.getByLabel("Kho *", { exact: true }).selectOption("1");
   await page.getByRole("dialog").locator("tbody select").selectOption("1");
+  await expect(page.getByLabel("Mã đơn hàng")).toHaveValue("DH-021020260901234567");
+  await page.getByLabel("Giảm giá (%) dòng 1", { exact: true }).fill("10");
+  await expect(page.getByRole("dialog").locator("tbody tr td").nth(4)).toHaveText(/90/);
+  await expect(page.getByLabel("Mã đơn hàng")).toHaveAttribute("readonly", "");
+  stockQuantity = 0;
+  await page.getByRole("button", { name: "Lưu đơn hàng" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "chỉ còn 0" })).toBeVisible();
+  expect(created).toBe(0);
+  stockQuantity = 10;
+  await page.getByRole("button", { name: "Cập nhật tồn kho" }).click();
+  await expect(page.getByText("Tồn kho đã chọn: 10")).toBeVisible();
   await page.getByRole("button", { name: "Lưu đơn hàng" }).click();
   await expect(
     page.getByText("Đã tải lại phần dữ liệu được lưu.", { exact: false }),
