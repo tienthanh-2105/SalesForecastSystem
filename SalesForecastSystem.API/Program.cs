@@ -26,6 +26,7 @@ builder.Services.AddScoped<ISalesService, SalesService>();
 builder.Services.AddScoped<IInventoryTransactionService, InventoryTransactionService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IForecastDataService, ForecastDataService>();
+builder.Services.AddScoped<IExcelService, ExcelService>();
 builder.Services.AddScoped<SessionJwtEvents>();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));

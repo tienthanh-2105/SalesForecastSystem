@@ -1,4 +1,4 @@
-param([string]$Server = '.\SQLEXPRESS')
+param([string]$Server = '.\SQLEXPRESS', [switch]$ExcelOnly)
 $ErrorActionPreference = 'Stop'
 
 $testId = [guid]::NewGuid().ToString('N')
@@ -16,7 +16,7 @@ try {
     $scripts = @('001_schema.sql', '004_auth_sessions.sql', '005_english_schema.sql',
         '006_english_operations.sql', '007_schema_cleanup.sql', '008_english_defaults.sql',
         '009_product_enhancements.sql', '010_customers.sql', '011_order_workflow.sql',
-        '012_hierarchical_categories.sql', '013_category_codes.sql')
+        '012_hierarchical_categories.sql', '013_category_codes.sql', '014_user_codes.sql')
     foreach ($script in $scripts) {
         $source = Join-Path $projectRoot "database/$script"
         $destination = Join-Path $scriptDirectory $script
@@ -28,7 +28,8 @@ try {
     $env:TEST_SQL_CONNECTION = "Server=$Server;Database=$databaseName;Trusted_Connection=True;TrustServerCertificate=True"
     $env:TEST_PROJECT_ROOT = $projectRoot
     $env:TEST_API_BIN = Join-Path $buildOutput 'Debug/net8.0'
-    & dotnet run --project (Join-Path $projectRoot 'tests/SalesForecastSystem.IntegrationChecks') "-p:BaseOutputPath=$buildOutput/" -- --full-flow
+    $checkProject = if ($ExcelOnly) { 'tests/SalesForecastSystem.ExcelChecks' } else { 'tests/SalesForecastSystem.IntegrationChecks' }
+    & dotnet run --project (Join-Path $projectRoot $checkProject) "-p:BaseOutputPath=$buildOutput/" -- --full-flow
     if ($LASTEXITCODE -ne 0) { throw "Disposable integration checks failed (exit $LASTEXITCODE)." }
 }
 finally {
