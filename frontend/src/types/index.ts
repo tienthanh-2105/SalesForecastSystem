@@ -102,7 +102,7 @@ export interface UserRow {
   createdAt: string;
 }
 export type Section =
-  "categories" | "products" | "warehouses" | "purchases" | "orders" | "customers" | "users";
+  "categories" | "products" | "warehouses" | "purchases" | "orders" | "customers" | "users" | "reports";
 export interface Supplier {
   supplierId: number; name: string; isActive: boolean;
 }

@@ -24,6 +24,7 @@ import { OrderForm } from "./orders/OrderForm";
 import { CustomerForm } from "./customers/CustomerForm";
 import { CustomerHistory } from "./customers/CustomerHistory";
 import { UserForm } from "./users/UserForm";
+import { ExcelActions } from "./excel/ExcelActions";
 interface Editor {
   entity: Row | null;
   view: boolean;
@@ -168,6 +169,9 @@ export function ManagementPage({ section }: { section: Section }) {
           setEditor({ entity: null, view: false });
         }}
       />
+      {(section === "products" || section === "orders") && (
+        <ExcelActions key={section} section={section} params={params} total={total} disabled={loading || !!failure || data.isFetching} />
+      )}
       {error && (
         <div role="alert" className="alert alert-danger">
           {error}

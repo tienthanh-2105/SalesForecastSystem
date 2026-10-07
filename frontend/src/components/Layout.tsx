@@ -36,7 +36,7 @@ export function Layout() {
                   <span
                     className={`admin-nav-label ${key === "categories" ? "fs-6" : ""}`}
                   >
-                    {key === "categories"
+                    {key === "reports" ? "BÁO CÁO" : key === "categories"
                       ? "QUẢN LÝ SẢN PHẨM"
                       : key === "warehouses"
                         ? "QUẢN LÝ KHO"

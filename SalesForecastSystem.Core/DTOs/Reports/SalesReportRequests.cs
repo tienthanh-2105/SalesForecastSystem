@@ -76,3 +76,17 @@ public sealed class InventoryReportQuery
 
     public bool BelowMinimumOnly { get; set; }
 }
+
+public sealed class StaffGroupSalesQuery : SalesReportQuery
+{
+    [Required, StringLength(100)] public string GroupName { get; set; } = "Nhóm bán hàng";
+    [Required, MinLength(1), MaxLength(100)] public int[] StaffUserIds { get; set; } = [];
+    public override IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        foreach (var error in base.Validate(validationContext)) yield return error;
+        if (StaffUserIds is null || StaffUserIds.Any(id => id <= 0))
+            yield return new ValidationResult("StaffUserIds must contain positive IDs.", [nameof(StaffUserIds)]);
+        if (StaffUserId.HasValue)
+            yield return new ValidationResult("Use StaffUserIds instead of StaffUserId for a group report.", [nameof(StaffUserId)]);
+    }
+}

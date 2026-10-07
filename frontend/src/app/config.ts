@@ -3,6 +3,7 @@ export const sections: Record<
   Section,
   { label: string; title: string; icon: string; heading: string }
 > = {
+  reports: { label: "Báo cáo", title: "BÁO CÁO BÁN HÀNG", icon: "bar-chart", heading: "Lợi nhuận và doanh số nhóm" },
   categories: {
     label: "Danh mục",
     title: "QUẢN LÝ DANH MỤC",
@@ -49,7 +50,7 @@ export const roleLabels: Record<Role, string> = {
   SalesStaff: "Nhân viên bán hàng",
 };
 export const allowed = (role: Role, section: string) =>
-  role === "Admin" ||
+  section === "reports" || role === "Admin" ||
   (role === "WarehouseManager" && ["warehouses", "purchases"].includes(section)) ||
   (role === "SalesStaff" && ["orders", "customers"].includes(section));
 export const home = (role: Role) =>

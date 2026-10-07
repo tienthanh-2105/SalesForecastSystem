@@ -9,8 +9,18 @@ namespace SalesForecastSystem.API.Controllers;
 [ApiController]
 [Route("api/reports")]
 [Authorize(Roles = RoleNames.All)]
-public sealed class ReportController(IReportService service) : ControllerBase
+public sealed class ReportController(IReportService service) : ApiControllerBase
 {
+    [HttpGet("profit")]
+    [ProducesResponseType(typeof(ProfitReportResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Profit([FromQuery] SalesTrendQuery request, CancellationToken ct) =>
+        Ok(await service.GetProfitAsync(request, ct));
+
+    [HttpGet("sales-by-group")]
+    [ProducesResponseType(typeof(StaffGroupSalesResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SalesByGroup([FromQuery] StaffGroupSalesQuery request, CancellationToken ct) =>
+        FromServiceResult(await service.GetSalesByGroupAsync(request, ct), result => Ok(result));
+
     [HttpGet("sales-summary")]
     [ProducesResponseType(typeof(SalesSummaryResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSalesSummaryAsync(

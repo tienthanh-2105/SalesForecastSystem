@@ -1,4 +1,16 @@
 @import "../../../SalesForecastSystem.API/wwwroot/css/app.css";
+.excel-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin: -4px 0 18px; padding: 12px 16px; background: #f1f8fd; border: 1px solid #dceaf4; border-radius: 12px; }
+.excel-label { display: inline-flex; align-items: center; gap: 8px; color: #216b52; font-weight: 600; }
+.excel-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.excel-file-panel { padding: 16px; border: 1px dashed #9bbdd6; border-radius: 12px; background: #f6fbff; }
+.excel-guide summary { cursor: pointer; color: #236b98; font-weight: 600; }
+.excel-summary { display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 14px 16px; background: #f5f8fa; border-radius: 10px; }
+.excel-preview { max-height: 420px; }
+.excel-preview thead th { position: sticky; top: 0; z-index: 1; background: #eaf3fa; white-space: nowrap; }
+.excel-preview td { min-width: 140px; max-width: 340px; white-space: normal; overflow-wrap: anywhere; }
+.excel-preview td.excel-row-result { min-width: 280px; }
+.excel-modal-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; border-top: 1px solid #e2eaf1; padding-top: 16px; margin-top: 20px; }
+@media (max-width: 575px) { .excel-actions { width: 100%; } .excel-actions .btn { flex: 1 1 auto; } .excel-modal-footer > div { width: 100%; } }
 /* React theme: larger readable text and a white sidebar. */
 .admin-sidebar {
   background: #ffffff;

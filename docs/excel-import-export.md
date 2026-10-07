@@ -1,17 +1,12 @@
 # Mẫu Excel sản phẩm và đơn hàng
 
-Ngày cập nhật: 05/10/2026. Backend đã hỗ trợ file mẫu, xuất dữ liệu, kiểm tra file và import hàng loạt sản phẩm/đơn hàng. Giao diện hiện vẫn dùng kiểm tra và xuất file phía trình duyệt; nút lưu import chưa kết nối API mới.
+Cập nhật frontend ngày 07/10/2026 cho API ngày 05/10/2026.
 
 ## Sử dụng giao diện
 
-Trang Sản phẩm và Đơn hàng có nhóm nút Nhập Excel, Xuất Excel và Tải file mẫu.
+Trang Sản phẩm và Đơn hàng có Nhập Excel, Xuất Excel và Tải file mẫu. File mẫu và file xuất được tải trực tiếp từ backend, kèm JWT. Xuất áp dụng bộ lọc hiện tại cho toàn bộ danh sách.
 
-- Tải mẫu tạo workbook có sheet dữ liệu trống, ViDu, ThamChieu và HuongDan. Ví dụ nằm riêng để không nhập nhầm dữ liệu mẫu. Mã tham chiếu được đọc từ API hiện tại.
-- Nhập Excel nhận file `.xlsx` tối đa 5 MB, không đặt mật khẩu, tối đa 2000 dòng dữ liệu. Chọn file rồi nhấn Kiểm tra file để đọc và đối chiếu dữ liệu; xem kết quả theo dòng Excel, lọc dòng có lỗi, phân trang 20 dòng.
-- Công thức, ô lỗi, ô liên kết và ô gộp không được nhận. Giá trị mã và số điện thoại phải là văn bản; số 0 đầu không được tự đoán lại.
-- Chọn file khác hoặc kiểm tra lại xóa kết quả cũ. Nếu tải dữ liệu tham chiếu lỗi, không hiển thị kết quả hợp lệ chưa đối chiếu; người dùng có thể thử lại.
-- Nút Nhập vào hệ thống chưa được bật. Kiểm tra file không làm thay đổi khách hàng, sản phẩm, đơn hàng, doanh thu hoặc tồn kho.
-- Xuất Excel tải mọi trang khớp tìm kiếm/bộ lọc hiện tại. Giới hạn 2000 bản ghi hoặc 2000 dòng chi tiết, vượt giới hạn báo lỗi, không xuất âm thầm một phần. Bộ nhớ đệm danh sách không dùng làm nguồn xuất.
+Chọn file .xlsx tối đa 5 MB và 2000 dòng, nhấn Kiểm tra file để gọi API import/preview. Giao diện hiển thị số dòng hợp lệ và lỗi theo dòng/cột. Nhập vào hệ thống chỉ bật khi toàn bộ file hợp lệ. API import kiểm tra lại và lưu nguyên tử; lỗi hoặc dữ liệu trùng không ghi một phần file. Đổi file hoặc kiểm tra lại vô hiệu hóa kết quả cũ. Sau khi lưu thành công, danh sách tự tải lại.
 
 ## Mẫu sản phẩm
 

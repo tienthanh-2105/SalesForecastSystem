@@ -34,7 +34,7 @@ async Task<JsonElement> Json(string method, string url, string? role, int status
     using var response = await Request(method, url, role, body is null ? null : JsonContent.Create(body));
     var text = await response.Content.ReadAsStringAsync();
     Assert((int)response.StatusCode == status, $"{method} {url}: expected {status}, got {(int)response.StatusCode}: {text}");
-    return JsonDocument.Parse(text).RootElement.Clone();
+    return string.IsNullOrWhiteSpace(text) ? default : JsonDocument.Parse(text).RootElement.Clone();
 }
 async Task<JsonElement> Upload(string route, byte[] bytes, string? role = "Admin", int expected = 200, string name = "data.xlsx")
 {
@@ -206,7 +206,68 @@ try
     var race = await Task.WhenAll(Race(), Race());
     Assert(race.Count(s => s == 200) == 1 && race.All(s => s is 200 or 400 or 409), "one concurrent import succeeds");
     Assert(await db.Products.CountAsync(p => p.SKU == "RACE-SKU") == 1, "database prevents simultaneous duplicate SKU");
-    Console.WriteLine($"ALL {checkedCount} EXCEL HTTP AND SQL ASSERTIONS PASSED.");
+    // Reports use the same isolated SQL database and actual posted inventory transactions.
+    var reportStart = checkedCount;
+    await Json("GET", "/api/reports/profit", null, 401);
+    var draftProfit = await Json("GET", "/api/reports/profit", "WarehouseManager", 200);
+    Assert(draftProfit.GetProperty("totals").GetProperty("revenue").GetDecimal() == 0, "draft sales excluded from profit");
+    await Json("POST", $"/api/sales/{orderId}/submit", "SalesStaff", 200);
+    await Json("POST", $"/api/sales/{orderId}/dispatch", "SalesStaff", 200);
+    await Json("POST", $"/api/sales/{orderId}/complete", "SalesStaff", 200);
+    var profit = await Json("GET", "/api/reports/profit?period=Week", "Admin", 200);
+    var totals = profit.GetProperty("totals");
+    Assert(totals.GetProperty("revenue").GetDecimal() == 398 && totals.GetProperty("costOfGoodsSold").GetDecimal() == 400 && totals.GetProperty("grossProfit").GetDecimal() == -2, "profit subtracts FIFO cost and discounts, preserves losses");
+    Assert(profit.GetProperty("periods")[0].GetProperty("periodStart").GetDateTime() == new DateTime(2026, 10, 5), "week begins Monday");
+    var extraPurchase = await Json("POST", "/api/purchases", "Admin", 201, new { orderNumber = "REPORT-PO", warehouseId = warehouse.WarehouseId, supplierId = supplier.SupplierId, orderDate = "2026-10-06" });
+    var extraId = extraPurchase.GetProperty("purchaseOrderId").GetInt64();
+    await Json("POST", $"/api/purchases/{extraId}/items", "Admin", 200, new { productId, quantity = 5, unitPrice = 200 });
+    await Json("POST", $"/api/purchases/{extraId}/post", "Admin", 200);
+    Assert((await Json("GET", "/api/reports/profit", "Admin", 200)).GetProperty("totals").GetProperty("costOfGoodsSold").GetDecimal() == 400, "later purchase does not change earlier sale cost");
+    var fifoOrder = await Upload("/api/sales/import", Workbook("DonHang", orderHeaders, [OrderRow("FIFO-SO", quantity: 19)]), "Admin");
+    var fifoId = fifoOrder.GetProperty("createdIds")[0].GetInt64();
+    await Json("POST", $"/api/sales/{fifoId}/submit", "Admin", 200);
+    await Json("POST", $"/api/sales/{fifoId}/dispatch", "Admin", 200);
+    await Json("POST", $"/api/sales/{fifoId}/complete", "Admin", 200);
+    var fifoProfit = (await Json("GET", "/api/reports/profit", "Admin", 200)).GetProperty("totals");
+    Assert(fifoProfit.GetProperty("costOfGoodsSold").GetDecimal() == 2400 && fifoProfit.GetProperty("grossProfit").GetDecimal() == -103, "FIFO sale spans old and new lots");
+    var filteredProfit = (await Json("GET", $"/api/reports/profit?productId={secondProductId}&period=Month", "SalesStaff", 200));
+    Assert(filteredProfit.GetProperty("totals").GetProperty("costOfGoodsSold").GetDecimal() == 200, "profit product filter retains full prior ledger");
+    Assert(filteredProfit.GetProperty("periods")[0].GetProperty("periodStart").GetDateTime() == new DateTime(2026, 10, 1), "monthly profit bucket");
+    var adminId = await db.Users.Where(u => u.Email == "admin@excel.test").Select(u => u.UserId).SingleAsync();
+    var staffId = await db.Users.Where(u => u.Email == "salesstaff@excel.test").Select(u => u.UserId).SingleAsync();
+    var warehouseUser = await db.Users.Where(u => u.Email == "warehousemanager@excel.test").Select(u => u.UserId).SingleAsync();
+    var groupUrl = $"/api/reports/sales-by-group?groupName=Team&staffUserIds={adminId}&staffUserIds={staffId}&staffUserIds={warehouseUser}&staffUserIds={adminId}";
+    var groupReport = await Json("GET", groupUrl, "SalesStaff", 200);
+    Assert(groupReport.GetProperty("orderCount").GetInt64() == 2 && groupReport.GetProperty("revenue").GetDecimal() == 2297, "group totals count multi-line order once and deduplicate IDs");
+    Assert(groupReport.GetProperty("members").GetArrayLength() == 3 && groupReport.GetProperty("members").EnumerateArray().Single(m => m.GetProperty("userId").GetInt32() == warehouseUser).GetProperty("revenue").GetDecimal() == 0, "group includes zero-sales member");
+    await Json("GET", "/api/reports/sales-by-group", "Admin", 400);
+    await Json("GET", "/api/reports/sales-by-group?staffUserIds=-1", "Admin", 400);
+    await Json("GET", "/api/reports/sales-by-group?staffUserIds=2147483647", "Admin", 400);
+    await Json("GET", groupUrl + "&staffUserId=" + adminId, "Admin", 400);
+    await Json("GET", "/api/reports/profit?period=Invalid", "Admin", 400);
+    await Json("GET", "/api/reports/profit?fromDate=2026-10-06&toDate=2026-10-05", "Admin", 400);
+    Assert((await Json("GET", "/api/reports/profit?fromDate=2026-10-06", "Admin", 200)).GetProperty("totals").GetProperty("revenue").GetDecimal() == 0, "empty profit date filter");
+    var otherWarehouse = new Warehouse { Name = "Report second warehouse", IsActive = true };
+    db.Warehouses.Add(otherWarehouse); await db.SaveChangesAsync();
+    var otherPurchase = await Json("POST", "/api/purchases", "Admin", 201, new { orderNumber = "OTHER-WH-PO", warehouseId = otherWarehouse.WarehouseId, supplierId = supplier.SupplierId, orderDate = "2026-10-05" });
+    var otherPurchaseId = otherPurchase.GetProperty("purchaseOrderId").GetInt64();
+    await Json("POST", $"/api/purchases/{otherPurchaseId}/items", "Admin", 200, new { productId, quantity = 5, unitPrice = 900 });
+    await Json("POST", $"/api/purchases/{otherPurchaseId}/post", "Admin", 200);
+    var otherRow = OrderRow("OTHER-WH-SO", quantity: 1); otherRow[2] = $"KHO-{otherWarehouse.WarehouseId:D4}"; otherRow[8] = 1000m;
+    var otherSale = await Upload("/api/sales/import", Workbook("DonHang", orderHeaders, [otherRow]));
+    var otherSaleId = otherSale.GetProperty("createdIds")[0].GetInt64();
+    await Json("POST", $"/api/sales/{otherSaleId}/submit", "Admin", 200);
+    await Json("POST", $"/api/sales/{otherSaleId}/dispatch", "Admin", 200);
+    await Json("POST", $"/api/sales/{otherSaleId}/complete", "Admin", 200);
+    var otherTotals = (await Json("GET", $"/api/reports/profit?warehouseId={otherWarehouse.WarehouseId}", "Admin", 200)).GetProperty("totals");
+    Assert(otherTotals.GetProperty("costOfGoodsSold").GetDecimal() == 900 && otherTotals.GetProperty("grossProfit").GetDecimal() == 99, "FIFO lots are isolated by warehouse");
+    // Historical completed sale without cost ledger must be explicit, not assumed free stock.
+    db.SalesOrders.Add(new SalesOrder { OrderNumber = "NO-COST", OrderDate = new DateTime(2026, 10, 6), WarehouseId = warehouse.WarehouseId, CreatedByUserId = adminId, Status = "Draft", Items = [new SalesOrderItem { ProductId = productId, Quantity = 1, UnitPrice = 100 }] });
+    await db.SaveChangesAsync();
+    await db.Database.ExecuteSqlRawAsync("UPDATE dbo.SalesOrders SET Status='Completed', CompletedAt=SYSUTCDATETIME() WHERE OrderNumber='NO-COST'");
+    var missingCost = (await Json("GET", "/api/reports/profit?fromDate=2026-10-06", "Admin", 200)).GetProperty("totals");
+    Assert(missingCost.GetProperty("missingCostQuantity").GetInt64() == 1 && missingCost.GetProperty("grossProfit").ValueKind == JsonValueKind.Null, "unknown cost returns null profit and missing quantity");
+    Console.WriteLine($"ALL {checkedCount} HTTP AND SQL ASSERTIONS PASSED ({checkedCount - reportStart} report assertions).");
 }
 catch (Exception ex) { Console.Error.WriteLine(ex); Console.Error.WriteLine(string.Join('\n', logs)); throw; }
 finally

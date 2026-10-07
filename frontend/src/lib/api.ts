@@ -15,6 +15,7 @@ export class ApiError extends Error {
 export async function api<T>(
   path: string,
   options: RequestInit = {},
+  binary = false,
 ): Promise<T> {
   const headers = new Headers(options.headers);
   if (token && !headers.has("Authorization"))
@@ -26,6 +27,7 @@ export async function api<T>(
     headers,
     cache: "no-store",
   });
+  if (response.ok && binary) return await response.blob() as T;
   const data =
     response.status === 204 ? null : await response.json().catch(() => null);
   if (!response.ok) {
@@ -38,7 +40,7 @@ export async function api<T>(
     )
       unauthorized?.();
     const message = data?.errors
-      ? Object.values(data.errors).flat().join(" ")
+      ? (Array.isArray(data.errors) ? data.errors.map((e: { row: number; column: string; message: string }) => `Dòng ${e.row} (${e.column}): ${e.message}`) : Object.values(data.errors).flat()).join(" ")
       : data?.detail || data?.title || data?.message;
     throw new ApiError(
       response.status,

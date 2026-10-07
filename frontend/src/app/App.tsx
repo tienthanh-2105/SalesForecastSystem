@@ -6,6 +6,7 @@ import { ManagementPage } from "../features/ManagementPage";
 import { PurchasePage } from "../features/purchases/PurchasePage";
 import { allowed, home, sections } from "./config";
 import type { Section } from "../types";
+import { ReportPage } from "../features/reports/ReportPage";
 function Protected() {
   const { session, ready } = useAuth();
   const location = useLocation();
@@ -23,7 +24,7 @@ function Protected() {
 function Access({ section }: { section: Section }) {
   const { session } = useAuth();
   return session && allowed(session.user.role, section) ? (
-    section === "purchases" ? <PurchasePage /> : <ManagementPage key={section} section={section} />
+    section === "reports" ? <ReportPage /> : section === "purchases" ? <PurchasePage /> : <ManagementPage key={section} section={section} />
   ) : (
     <Navigate to="/forbidden" replace />
   );

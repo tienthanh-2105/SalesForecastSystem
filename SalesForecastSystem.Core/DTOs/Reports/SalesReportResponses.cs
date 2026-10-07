@@ -1,5 +1,13 @@
 namespace SalesForecastSystem.Core.DTOs.Reports;
 
+public sealed record ProfitTotalsResponse(long OrderCount, long QuantitySold, decimal Revenue,
+    decimal? CostOfGoodsSold, decimal? GrossProfit, long MissingCostQuantity);
+public sealed record ProfitPeriodResponse(DateTime PeriodStart, ProfitTotalsResponse Totals);
+public sealed record ProfitReportResponse(string CostMethod, ProfitTotalsResponse Totals,
+    IReadOnlyList<ProfitPeriodResponse> Periods);
+public sealed record StaffGroupSalesResponse(string GroupName, IReadOnlyList<int> StaffUserIds,
+    long OrderCount, long QuantitySold, decimal Revenue, IReadOnlyList<StaffSalesResponse> Members);
+
 public sealed record SalesSummaryResponse(
     DateTime? FromDate,
     DateTime? ToDate,
