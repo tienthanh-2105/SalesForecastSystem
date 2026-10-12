@@ -1,5 +1,10 @@
 namespace SalesForecastSystem.Core.DTOs.Reports;
 
+public sealed record StockAlertResponse(int ProductId, string SKU, string ProductName,
+    long QuantityOnHand, int MinimumStockLevel, long QuantitySold, bool IsBestSeller, bool IsOutOfStock);
+public sealed record StockAlertsResponse(DateTime CheckedAtUtc, DateTime FromDate, DateTime ToDate,
+    IReadOnlyList<StockAlertResponse> Items);
+
 public sealed record ProfitTotalsResponse(long OrderCount, long QuantitySold, decimal Revenue,
     decimal? CostOfGoodsSold, decimal? GrossProfit, long MissingCostQuantity);
 public sealed record ProfitPeriodResponse(DateTime PeriodStart, ProfitTotalsResponse Totals);

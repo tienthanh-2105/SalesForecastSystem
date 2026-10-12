@@ -11,6 +11,11 @@ namespace SalesForecastSystem.API.Controllers;
 [Authorize(Roles = RoleNames.All)]
 public sealed class ReportController(IReportService service) : ApiControllerBase
 {
+    [HttpGet("stock-alerts")]
+    [ProducesResponseType(typeof(StockAlertsResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> StockAlerts(CancellationToken ct) =>
+        Ok(await service.GetStockAlertsAsync(ct));
+
     [HttpGet("profit")]
     [ProducesResponseType(typeof(ProfitReportResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> Profit([FromQuery] SalesTrendQuery request, CancellationToken ct) =>

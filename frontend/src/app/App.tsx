@@ -7,6 +7,7 @@ import { PurchasePage } from "../features/purchases/PurchasePage";
 import { allowed, home, sections } from "./config";
 import type { Section } from "../types";
 import { ReportPage } from "../features/reports/ReportPage";
+import { SalesAnalysisPage } from "../features/reports/SalesAnalysisPage";
 function Protected() {
   const { session, ready } = useAuth();
   const location = useLocation();
@@ -23,11 +24,10 @@ function Protected() {
 }
 function Access({ section }: { section: Section }) {
   const { session } = useAuth();
-  return session && allowed(session.user.role, section) ? (
-    section === "reports" ? <ReportPage /> : section === "purchases" ? <PurchasePage /> : <ManagementPage key={section} section={section} />
-  ) : (
-    <Navigate to="/forbidden" replace />
-  );
+  const location = useLocation();
+  if (!session || !allowed(session.user.role, section)) return <Navigate to="/forbidden" replace />;
+  if (section === "reports") return location.pathname.endsWith("/analysis") ? <SalesAnalysisPage /> : <ReportPage />;
+  return section === "purchases" ? <PurchasePage /> : <ManagementPage key={section} section={section} />;
 }
 function Home() {
   const { session } = useAuth();
@@ -42,6 +42,7 @@ export function App() {
       <Route element={<Protected />}>
         <Route element={<Layout />}>
           <Route index element={<Home />} />
+          <Route path="/reports/analysis" element={<Access section="reports" />} />
           {(Object.keys(sections) as Section[]).map((section) => (
             <Route
               key={section}

@@ -2,10 +2,47 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { date, localDate, money } from "../../lib/format";
+import { allPages } from "../../lib/api";
+import type { Category, Product as CatalogProduct, Warehouse } from "../../types";
+
 interface Totals { orderCount: number; quantitySold: number; revenue: number; costOfGoodsSold: number | null; grossProfit: number | null; missingCostQuantity: number }
 interface Profit { costMethod: string; totals: Totals; periods: { periodStart: string; totals: Totals }[] }
-interface Staff { userId: number; fullName: string; orderCount: number; quantitySold: number; revenue: number }
-interface Group { groupName: string; revenue: number; quantitySold: number; orderCount: number; members: Staff[] }
+interface TrendPoint { periodStart: string; revenue: number; quantitySold: number; orderCount: number }
+
+const chartColors = ["#2764c5", "#17a589", "#ef9b27", "#df5948", "#7856b8", "#1597ad", "#de6897", "#758495"];
+const periodDate = (value: string, period: string) => new Date(value).toLocaleDateString("vi-VN", period === "Month" ? { month: "2-digit", year: "2-digit" } : { day: "2-digit", month: "2-digit" });
+
+function RevenueCharts({ points, period }: { points: TrendPoint[]; period: string }) {
+  const width = 940, height = 320, left = 90, right = 16, top = 34, bottom = 48;
+  const plotWidth = width - left - right, plotHeight = height - top - bottom;
+  const maxRevenue = Math.max(0, ...points.map(p => p.revenue));
+  const tickStep = maxRevenue >= 50_000_000 ? 50_000_000 : maxRevenue >= 5_000_000 ? 5_000_000 : maxRevenue >= 500_000 ? 500_000 : maxRevenue >= 50_000 ? 50_000 : 5_000;
+  const max = Math.max(tickStep, Math.ceil(maxRevenue / tickStep) * tickStep);
+  const step = plotWidth / Math.max(points.length, 1), barWidth = Math.min(42, step * .62);
+  const ticks = Array.from({ length: Math.floor(max / tickStep) + 1 }, (_, i) => i * tickStep);
+  const total = points.reduce((sum, p) => sum + p.revenue, 0);
+  let angle = -Math.PI / 2;
+  const slices = points.filter(p => p.revenue > 0).map((p, i) => {
+    const start = angle, delta = p.revenue / total * Math.PI * 2; angle += delta;
+    const x1 = 118 + 88 * Math.cos(start), y1 = 112 + 88 * Math.sin(start);
+    const x2 = 118 + 88 * Math.cos(angle), y2 = 112 + 88 * Math.sin(angle);
+    const large = delta > Math.PI ? 1 : 0;
+    return { point: p, color: chartColors[i % chartColors.length], path: `M 118 112 L ${x1} ${y1} A 88 88 0 ${large} 1 ${x2} ${y2} Z` };
+  });
+  return <div className="row g-3 mb-4">
+    <div className="col-xl-8"><section className="card report-card h-100"><header className="report-card-heading"><div><h3>Doanh thu theo thời gian</h3><p>Các đơn hàng đã hoàn tất</p></div><span className="report-chart-icon" aria-hidden="true">▥</span></header>
+      {!points.length ? <p className="report-empty">Không có dữ liệu trong khoảng thời gian đã chọn.</p> : <div className="chart-scroll"><svg className="revenue-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Biểu đồ cột doanh thu theo thời gian">
+        <text transform={`translate(18 ${top + plotHeight / 2}) rotate(-90)`} textAnchor="middle" className="chart-axis-title">Tổng doanh thu</text>
+        {ticks.map(value => { const y = top + plotHeight * (1 - value / max); return <g key={value}><line x1={left} x2={width - right} y1={y} y2={y} stroke="#e7edf3" /><text x={left - 10} y={y + 4} textAnchor="end" className="chart-axis-label">{value.toLocaleString("vi-VN")}</text></g>; })}
+        {points.map((p, i) => { const barHeight = p.revenue / max * plotHeight, x = left + i * step + (step - barWidth) / 2, barTop = top + plotHeight - barHeight; return <g key={p.periodStart}><title>{periodDate(p.periodStart, period)}: {money(p.revenue)}</title><rect x={x} y={barTop} width={barWidth} height={Math.max(barHeight, 1)} fill="#0d6efd" /><text x={x + barWidth / 2} y={Math.max(top - 8, barTop - 7)} textAnchor="middle" className="chart-value-label">{money(p.revenue)}</text><text x={x + barWidth / 2} y={height - 20} textAnchor="middle" className="chart-axis-label">{periodDate(p.periodStart, period)}</text></g>; })}
+      </svg></div>}
+    </section></div>
+    <div className="col-xl-4"><section className="card report-card h-100"><header className="report-card-heading"><div><h3>Cơ cấu doanh thu</h3><p>Tỷ trọng theo {period === "Day" ? "ngày" : period === "Week" ? "tuần" : "tháng"}</p></div><span className="report-chart-icon" aria-hidden="true">◔</span></header>
+      {!slices.length ? <p className="report-empty">Chưa có doanh thu để phân bổ.</p> : <><div className="pie-chart-wrap"><svg viewBox="0 0 236 224" role="img" aria-label="Biểu đồ tròn cơ cấu doanh thu">{slices.map(({ point, color, path }) => <path key={point.periodStart} d={path} fill={color}><title>{periodDate(point.periodStart, period)}: {money(point.revenue)} ({(point.revenue / total * 100).toFixed(1)}%)</title></path>)}</svg></div><ul className="chart-legend">{slices.map(({ point, color }) => <li key={point.periodStart}><span style={{ backgroundColor: color }} />{periodDate(point.periodStart, period)} · {(point.revenue / total * 100).toFixed(1)}%</li>)}</ul></>}
+    </section></div>
+  </div>;
+}
+
 export function ReportPage() {
   const [from, setFrom] = useState(localDate().slice(0, 7) + "-01");
   const [to, setTo] = useState(localDate());
@@ -14,52 +51,53 @@ export function ReportPage() {
   const [product, setProduct] = useState("");
   const [category, setCategory] = useState("");
   const [staffId, setStaffId] = useState("");
-  const [ids, setIds] = useState("");
-  const [name, setName] = useState("Nhóm bán hàng");
   const [profitQuery, setProfitQuery] = useState(`FromDate=${from}&ToDate=${to}&Period=Day`);
-  const [groupQuery, setGroupQuery] = useState<string | null>(null);
+  const [trendQuery, setTrendQuery] = useState(`FromDate=${from}&ToDate=${to}&Period=Day`);
   const [error, setError] = useState("");
+  const warehouses = useQuery({ queryKey: ["report-warehouses"], queryFn: () => allPages<Warehouse>("/api/warehouses?isActive=true") });
+  const categories = useQuery({ queryKey: ["report-categories"], queryFn: () => api<Category[]>("/api/categories") });
+  const catalogProducts = useQuery({ queryKey: ["report-products"], queryFn: () => allPages<CatalogProduct>("/api/products?isActive=true&sortBy=Name&sortDirection=Asc") });
   const profit = useQuery({ queryKey: ["profit", profitQuery], queryFn: ({ signal }) => api<Profit>(`/api/reports/profit?${profitQuery}`, { signal }) });
-  const group = useQuery({ queryKey: ["staff-group", groupQuery], queryFn: ({ signal }) => api<Group>(`/api/reports/sales-by-group?${groupQuery}`, { signal }), enabled: groupQuery !== null });
-  const staff = useQuery({ queryKey: ["report-staff"], queryFn: () => api<Staff[]>("/api/reports/sales-by-staff?Top=100") });
-  function apply(isGroup: boolean) {
+  const trend = useQuery({ queryKey: ["sales-trend", trendQuery], queryFn: ({ signal }) => api<TrendPoint[]>(`/api/reports/sales-trend?${trendQuery}`, { signal }) });
+
+  function apply() {
     setError("");
     if (!from || !to || from > to || (Date.parse(to) - Date.parse(from)) / 86400000 > 366) { setError("Chọn khoảng ngày hợp lệ, tối đa 366 ngày."); return; }
     const query = new URLSearchParams({ FromDate: from, ToDate: to });
     for (const [key, value] of [["WarehouseId", warehouse], ["ProductId", product], ["CategoryId", category]]) if (value) query.set(key, value);
-    if (isGroup) {
-      const members = [...new Set(ids.split(/[\s,;]+/).filter(Boolean))];
-      if (!name.trim() || name.trim().length > 100 || !members.length || members.length > 100 || members.some(id => !/^[1-9]\d*$/.test(id) || Number(id) > 2147483647)) { setError("Nhập tên nhóm tối đa 100 ký tự và 1–100 mã nhân viên nguyên dương, cách nhau bằng dấu phẩy."); return; }
-      query.set("GroupName", name.trim()); members.forEach(id => query.append("StaffUserIds", id)); setGroupQuery(query.toString());
-    } else { query.set("Period", period); if (staffId) query.set("StaffUserId", staffId); setProfitQuery(query.toString()); }
+    query.set("Period", period);
+    if (staffId) query.set("StaffUserId", staffId);
+    setProfitQuery(query.toString());
+    setTrendQuery(query.toString());
   }
   const currency = (value: number | null) => value === null ? "Chưa xác định" : money(value);
-  return <>
-    <h2 className="fs-4">Báo cáo lợi nhuận và nhóm nhân viên</h2>
-    <p className="text-secondary">Chỉ tính đơn đã hoàn tất. Lợi nhuận gộp = doanh thu sau giảm giá − giá vốn FIFO; chưa trừ chi phí vận hành và thuế.</p>
-    <form className="card p-3 mb-4" onSubmit={e => { e.preventDefault(); apply(false); }}>
-      <div className="row g-3">
-        <div className="col-md-4"><label className="form-label" htmlFor="report-from">Từ ngày</label><input id="report-from" type="date" className="form-control" required value={from} onChange={e => setFrom(e.target.value)} /></div>
-        <div className="col-md-4"><label className="form-label" htmlFor="report-to">Đến ngày</label><input id="report-to" type="date" className="form-control" required value={to} onChange={e => setTo(e.target.value)} /></div>
-        <div className="col-md-4"><label className="form-label" htmlFor="report-period">Chu kỳ</label><select id="report-period" className="form-select" value={period} onChange={e => setPeriod(e.target.value)}><option value="Day">Ngày</option><option value="Week">Tuần</option><option value="Month">Tháng</option></select></div>
-        {[["Mã kho", warehouse, setWarehouse], ["Mã sản phẩm", product, setProduct], ["Mã danh mục", category, setCategory], ["Mã nhân viên (lợi nhuận)", staffId, setStaffId]].map(([label, value, setter], i) => <div className="col-md-3" key={i}><label htmlFor={`report-id-${i}`} className="form-label">{label as string}</label><input id={`report-id-${i}`} className="form-control" type="number" min="1" max="2147483647" step="1" placeholder="Tất cả" value={value as string} onChange={e => (setter as (v: string) => void)(e.target.value)} /></div>)}
-      </div>
-      <button className="btn btn-brand mt-3 align-self-start" disabled={profit.isFetching}>Xem lợi nhuận</button>
+  const totals = profit.data?.totals;
+  const periods = profit.data?.periods ?? [];
+  const average = (value: number) => periods.length ? money(value / periods.length) : money(0);
+  const percent = (value: number) => totals?.revenue ? `${(value / totals.revenue * 100).toFixed(1)}%` : "0.0%";
+
+  return <main className="report-page">
+    <form className="report-filter-bar" onSubmit={e => { e.preventDefault(); apply(); }}>
+      <label className="visually-hidden" htmlFor="report-period">Chu kỳ</label><select id="report-period" className="form-select report-period-select" value={period} onChange={e => setPeriod(e.target.value)}><option value="Day">Theo ngày</option><option value="Week">Theo tuần</option><option value="Month">Theo tháng</option></select>
+      <div className="report-date-field"><label className="visually-hidden" htmlFor="report-from">Từ ngày</label><input id="report-from" type="date" className="form-control" required value={from} onChange={e => setFrom(e.target.value)} /><span>đến</span><label className="visually-hidden" htmlFor="report-to">Đến ngày</label><input id="report-to" type="date" className="form-control" required value={to} onChange={e => setTo(e.target.value)} /></div>
+      <label className="visually-hidden" htmlFor="report-warehouse">Kho</label><select id="report-warehouse" aria-label="Kho" className="form-select report-filter-input" value={warehouse} onChange={e => setWarehouse(e.target.value)}><option value="">Tất cả kho</option>{(Array.isArray(warehouses.data) ? warehouses.data : []).map(w => <option key={w.warehouseId} value={w.warehouseId}>{w.name}</option>)}</select>
+      <label className="visually-hidden" htmlFor="report-product">Sản phẩm</label><select id="report-product" aria-label="Sản phẩm" className="form-select report-filter-input" value={product} onChange={e => setProduct(e.target.value)}><option value="">Tất cả sản phẩm</option>{(Array.isArray(catalogProducts.data) ? catalogProducts.data : []).map(p => <option key={p.productId} value={p.productId}>{p.name} · {p.sku}</option>)}</select>
+      <label className="visually-hidden" htmlFor="report-category">Danh mục</label><select id="report-category" aria-label="Danh mục" className="form-select report-filter-input" value={category} onChange={e => setCategory(e.target.value)}><option value="">Tất cả danh mục</option>{(Array.isArray(categories.data) ? categories.data : []).filter(c => c.isActive).map(c => <option key={c.categoryId} value={c.categoryId}>{c.name}</option>)}</select>
+      <button className="btn btn-brand report-filter-button" aria-label="Lọc báo cáo" title="Lọc báo cáo" disabled={profit.isFetching || trend.isFetching}><i className="bi bi-funnel-fill" aria-hidden="true" /></button>
     </form>
-    {error && <div className="alert alert-danger" role="alert">{error}</div>}
-    {profit.isFetching ? <p role="status">Đang tải lợi nhuận...</p> : profit.error ? <div className="alert alert-danger" role="alert">{profit.error.message}<button className="btn btn-link" onClick={() => void profit.refetch()}>Thử lại</button></div> : profit.data && <>
-      {profit.data.totals.missingCostQuantity > 0 && <div className="alert alert-warning">Thiếu giá vốn cho {profit.data.totals.missingCostQuantity} sản phẩm đã bán. Giá vốn và lợi nhuận chưa thể xác định đầy đủ.</div>}
-      <div className="row g-3 mb-4">{[["Doanh thu", money(profit.data.totals.revenue)], ["Giá vốn", currency(profit.data.totals.costOfGoodsSold)], ["Lợi nhuận gộp", currency(profit.data.totals.grossProfit)], ["Đơn / số lượng bán", `${profit.data.totals.orderCount} / ${profit.data.totals.quantitySold}`]].map(([label, value]) => <div className="col-sm-6 col-lg-3" key={label}><div className="card p-3 h-100"><small className="text-secondary">{label}</small><strong className="fs-5 mt-2">{value}</strong></div></div>)}</div>
-      <div className="card p-3 mb-4"><h3 className="fs-5">Lợi nhuận theo kỳ · {profit.data.costMethod}</h3><div className="table-responsive"><table className="table"><thead><tr><th>Đầu kỳ</th><th>Đơn</th><th>Số lượng</th><th>Doanh thu</th><th>Giá vốn</th><th>Lợi nhuận gộp</th></tr></thead><tbody>{profit.data.periods.map(p => <tr key={p.periodStart}><td>{date(p.periodStart)}</td><td>{p.totals.orderCount}</td><td>{p.totals.quantitySold}</td><td>{money(p.totals.revenue)}</td><td>{currency(p.totals.costOfGoodsSold)}</td><td>{currency(p.totals.grossProfit)}</td></tr>)}</tbody></table></div>{!profit.data.periods.length && <p>Không có đơn hoàn tất trong bộ lọc.</p>}</div>
+    {error && <div className="alert alert-danger m-3" role="alert">{error}</div>}
+    {profit.isFetching ? <p className="p-4" role="status">Đang tải báo cáo...</p> : profit.error ? <div className="alert alert-danger m-3" role="alert">{profit.error.message}<button className="btn btn-link" onClick={() => void profit.refetch()}>Thử lại</button></div> : totals && <>
+      {totals.missingCostQuantity > 0 && <div className="alert alert-warning m-3">Thiếu giá vốn cho {totals.missingCostQuantity} sản phẩm đã bán; lợi nhuận gộp chưa thể xác định đầy đủ.</div>}
+      <div className="report-kpis">{[["Doanh thu", money(totals.revenue), "bi bi-currency-exchange"], ["Lợi nhuận gộp", currency(totals.grossProfit), "bi bi-graph-up-arrow"], ["Đơn thành công", totals.orderCount.toLocaleString("vi-VN"), "bi bi-receipt"], ["Sản phẩm đã bán", totals.quantitySold.toLocaleString("vi-VN"), "bi bi-box-seam"]].map(([label, value, icon]) => <article className="report-kpi" key={label}><span><i className={icon} aria-hidden="true" />{label}</span><strong>{value}</strong></article>)}</div>
+      {trend.isFetching ? <p className="px-3" role="status">Đang tải biểu đồ...</p> : trend.error ? <div className="alert alert-danger mx-3" role="alert">Không tải được biểu đồ: {trend.error.message}</div> : Array.isArray(trend.data) && <RevenueCharts points={trend.data} period={period} />}
+      <section className="card report-table-card"><div className="report-table-toolbar"><button type="button" className="btn btn-primary btn-sm" onClick={() => window.print()}><i className="bi bi-printer me-1" />In báo cáo</button><span className="small text-secondary">{date(from)} – {date(to)} · Giá vốn theo {profit.data?.costMethod}</span></div>
+        <div className="table-responsive"><table className="table report-data-table"><thead><tr><th>#</th><th>Thời gian</th><th>Đơn thành công</th><th>Số lượng bán</th><th>Doanh thu</th><th>Giá vốn</th><th>Lợi nhuận</th></tr></thead><tbody>
+          <tr className="report-summary-row"><th colSpan={2}>Tổng</th><td>{totals.orderCount.toLocaleString("vi-VN")}</td><td>{totals.quantitySold.toLocaleString("vi-VN")}</td><td>{money(totals.revenue)}</td><td>{totals.costOfGoodsSold === null ? "Chưa xác định" : money(totals.costOfGoodsSold)}</td><td>{totals.grossProfit === null ? "Chưa xác định" : money(totals.grossProfit)}</td></tr>
+          <tr className="report-summary-row"><th colSpan={2}>Trung bình / kỳ</th><td>{average(totals.orderCount)}</td><td>{average(totals.quantitySold)}</td><td>{average(totals.revenue)}</td><td>{totals.costOfGoodsSold === null ? "Chưa xác định" : average(totals.costOfGoodsSold)}</td><td>{totals.grossProfit === null ? "Chưa xác định" : average(totals.grossProfit)}</td></tr>
+          <tr className="report-summary-row"><th colSpan={2}>Tỷ lệ / tổng</th><td>100%</td><td>100%</td><td>100%</td><td>{totals.costOfGoodsSold === null ? "—" : percent(totals.costOfGoodsSold)}</td><td>{totals.grossProfit === null ? "—" : percent(totals.grossProfit)}</td></tr>
+          {periods.map((p, i) => <tr key={p.periodStart}><td>{i + 1}</td><td>{date(p.periodStart)}</td><td>{p.totals.orderCount.toLocaleString("vi-VN")}</td><td>{p.totals.quantitySold.toLocaleString("vi-VN")}</td><td>{money(p.totals.revenue)}</td><td>{currency(p.totals.costOfGoodsSold)}</td><td>{currency(p.totals.grossProfit)}</td></tr>)}
+        </tbody></table></div>{!periods.length && <p className="report-empty">Không có đơn hoàn tất trong bộ lọc.</p>}
+      </section>
     </>}
-    <form className="card p-3" onSubmit={e => { e.preventDefault(); apply(true); }}>
-      <h3 className="fs-5">Doanh số nhóm nhân viên</h3><p className="small text-secondary">Nhóm được chọn cho lần báo cáo này. Áp dụng khoảng ngày, kho, sản phẩm và danh mục ở trên.</p>
-      <label className="form-label" htmlFor="group-name">Tên nhóm</label><input id="group-name" className="form-control mb-3" required maxLength={100} value={name} onChange={e => setName(e.target.value)} />
-      <label className="form-label" htmlFor="staff-ids">Mã nhân viên, cách nhau bằng dấu phẩy</label><input id="staff-ids" className="form-control" required value={ids} onChange={e => setIds(e.target.value)} placeholder="Ví dụ: 1, 2, 3" />
-      {staff.data && <details className="mt-2"><summary>Tra cứu mã nhân viên có doanh số (tối đa 100)</summary><ul>{staff.data.map(s => <li key={s.userId}>{s.userId} · {s.fullName}</li>)}</ul></details>}
-      <p className="small text-secondary mt-2">Có thể nhập mã của nhân viên không có doanh số hoặc đã khóa để xem lịch sử.</p>
-      <button className="btn btn-brand align-self-start" disabled={group.isFetching}>Xem doanh số nhóm</button>
-    </form>
-    {groupQuery && (group.isFetching ? <p role="status">Đang tải doanh số nhóm...</p> : group.error ? <div className="alert alert-danger mt-3" role="alert">{group.error.message}<button className="btn btn-link" onClick={() => void group.refetch()}>Thử lại</button></div> : group.data && <div className="card p-3 mt-3"><h3 className="fs-5">{group.data.groupName}</h3><p>{group.data.orderCount} đơn · {group.data.quantitySold} sản phẩm · {money(group.data.revenue)}</p><div className="table-responsive"><table className="table"><thead><tr><th>Nhân viên</th><th>Đơn</th><th>Số lượng bán</th><th>Doanh thu</th></tr></thead><tbody>{group.data.members.map(s => <tr key={s.userId}><td>{s.fullName} ({s.userId})</td><td>{s.orderCount}</td><td>{s.quantitySold}</td><td>{money(s.revenue)}</td></tr>)}</tbody></table></div></div>)}
-  </>;
+  </main>;
 }

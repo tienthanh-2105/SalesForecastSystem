@@ -267,6 +267,27 @@ try
     await db.Database.ExecuteSqlRawAsync("UPDATE dbo.SalesOrders SET Status='Completed', CompletedAt=SYSUTCDATETIME() WHERE OrderNumber='NO-COST'");
     var missingCost = (await Json("GET", "/api/reports/profit?fromDate=2026-10-06", "Admin", 200)).GetProperty("totals");
     Assert(missingCost.GetProperty("missingCostQuantity").GetInt64() == 1 && missingCost.GetProperty("grossProfit").ValueKind == JsonValueKind.Null, "unknown cost returns null profit and missing quantity");
+    await Json("GET", "/api/reports/stock-alerts", null, 401);
+    var alertStock = await db.InventoryBalances.Where(b => b.ProductId == productId).SumAsync(b => b.QuantityOnHand);
+    await db.Products.Where(p => p.ProductId == productId).ExecuteUpdateAsync(s => s.SetProperty(p => p.MinimumStockLevel, (int)alertStock));
+    foreach (var role in new[] { "Admin", "WarehouseManager", "SalesStaff" })
+    {
+        var alerts = await Json("GET", "/api/reports/stock-alerts", role, 200);
+        var row = alerts.GetProperty("items").EnumerateArray().Single(p => p.GetProperty("productId").GetInt32() == productId);
+        Assert(row.GetProperty("quantityOnHand").GetInt64() == alertStock, "alerts aggregate stock across warehouses at threshold equality");
+        Assert(row.GetProperty("isBestSeller").GetBoolean(), "completed sales identify low-stock bestseller");
+    }
+    await db.Products.Where(p => p.ProductId == productId).ExecuteUpdateAsync(s => s.SetProperty(p => p.MinimumStockLevel, 0));
+    var clearedAlerts = await Json("GET", "/api/reports/stock-alerts", "Admin", 200);
+    Assert(!clearedAlerts.GetProperty("items").EnumerateArray().Any(p => p.GetProperty("productId").GetInt32() == productId), "alert clears when stock exceeds threshold");
+    var alertProduct = new Product { SKU = "ALERT-ZERO", Name = "Never stocked", Unit = "Cai", CategoryId = await db.Products.Where(p => p.ProductId == productId).Select(p => p.CategoryId).SingleAsync() };
+    db.Products.Add(alertProduct); await db.SaveChangesAsync();
+    var zeroAlerts = await Json("GET", "/api/reports/stock-alerts", "Admin", 200);
+    var zeroRow = zeroAlerts.GetProperty("items").EnumerateArray().Single(p => p.GetProperty("productId").GetInt32() == alertProduct.ProductId);
+    Assert(zeroRow.GetProperty("isOutOfStock").GetBoolean() && !zeroRow.GetProperty("isBestSeller").GetBoolean(), "no ledger means out of stock, no sales means not bestseller");
+    await db.Products.Where(p => p.ProductId == alertProduct.ProductId).ExecuteUpdateAsync(s => s.SetProperty(p => p.IsActive, false));
+    var inactiveAlerts = await Json("GET", "/api/reports/stock-alerts", "Admin", 200);
+    Assert(!inactiveAlerts.GetProperty("items").EnumerateArray().Any(p => p.GetProperty("productId").GetInt32() == alertProduct.ProductId), "inactive products excluded");
     Console.WriteLine($"ALL {checkedCount} HTTP AND SQL ASSERTIONS PASSED ({checkedCount - reportStart} report assertions).");
 }
 catch (Exception ex) { Console.Error.WriteLine(ex); Console.Error.WriteLine(string.Join('\n', logs)); throw; }

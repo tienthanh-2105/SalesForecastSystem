@@ -1,12 +1,18 @@
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthProvider";
 import { allowed, roleLabels, sections } from "../app/config";
 import type { Section } from "../types";
+import { StockAlerts } from "../features/reports/StockAlerts";
+import { Modal } from "./Modal";
 export function Layout() {
   const { session, logout, remaining } = useAuth();
   const [open, setOpen] = useState(false);
-  const section = useLocation().pathname.split("/")[1] as Section;
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const location = useLocation();
+  const section = location.pathname.split("/")[1] as Section;
+  const [reportsExpanded, setReportsExpanded] = useState(location.pathname.startsWith("/reports"));
   if (!session) return null;
   return (
     <main className={`admin-layout ${open ? "sidebar-open" : ""}`}>
@@ -31,21 +37,17 @@ export function Layout() {
           {Object.entries(sections)
             .filter(([key]) => allowed(session.user.role, key))
             .map(([key, config]) => (
-              <Fragment key={key}>
-                {key !== "products" && key !== "customers" && key !== "purchases" && (
-                  <span
-                    className={`admin-nav-label ${key === "categories" ? "fs-6" : ""}`}
-                  >
-                    {key === "reports" ? "BÁO CÁO" : key === "categories"
-                      ? "QUẢN LÝ SẢN PHẨM"
-                      : key === "warehouses"
-                        ? "QUẢN LÝ KHO"
-                        : key === "orders"
-                          ? "BÁN HÀNG"
-                          : "HỆ THỐNG"}
-                  </span>
-                )}
+              key === "reports" ? <div className="report-nav-group" key={key}>
+                <button className={`admin-nav-item report-nav-trigger ${location.pathname.startsWith("/reports") ? "active" : ""}`} aria-expanded={reportsExpanded} onClick={() => setReportsExpanded(value => !value)}>
+                  <i aria-hidden="true" className={`bi bi-${config.icon}`} /><span>{config.label}</span><i aria-hidden="true" className={`bi bi-chevron-${reportsExpanded ? "down" : "right"} report-nav-chevron`} />
+                </button>
+                {reportsExpanded && <div className="report-subnav">
+                  <NavLink to="/reports/analysis" onClick={() => setOpen(false)} className={({ isActive }) => `report-subnav-item ${isActive ? "active" : ""}`}>Phân tích bán hàng</NavLink>
+                  <NavLink to="/reports" end onClick={() => setOpen(false)} className={({ isActive }) => `report-subnav-item ${isActive ? "active" : ""}`}>Danh sách báo cáo</NavLink>
+                </div>}
+              </div> :
                 <NavLink
+                  key={key}
                   aria-label={config.label}
                   to={`/${key}`}
                   onClick={() => setOpen(false)}
@@ -56,7 +58,6 @@ export function Layout() {
                   <i aria-hidden="true" className={`bi bi-${config.icon}`} />
                   {config.label}
                 </NavLink>
-              </Fragment>
             ))}
         </nav>
       </aside>
@@ -75,18 +76,16 @@ export function Layout() {
             </h1>
           </div>
           <div className="topbar-actions">
-            <div className="topbar-user">
-              <strong className="topbar-user-name">{session.user.fullName}</strong>
-              <span className="topbar-email">{session.user.email}</span>
+            <StockAlerts />
+            <div className="account-menu-wrap">
+              <button className="account-menu-trigger" aria-expanded={accountMenuOpen} aria-haspopup="true" onClick={() => setAccountMenuOpen(value => !value)}>
+                <span>{session.user.fullName}</span><i className={`bi bi-chevron-${accountMenuOpen ? "up" : "down"}`} aria-hidden="true" />
+              </button>
+              {accountMenuOpen && <section className="account-menu" aria-label="Tài khoản người dùng">
+                <button className="account-menu-item" onClick={() => { setAccountMenuOpen(false); setProfileOpen(true); }}><i className="bi bi-person-vcard" aria-hidden="true" />Thông tin cá nhân</button>
+                <button className="account-menu-item account-menu-logout" onClick={() => logout()}><i className="bi bi-box-arrow-right" aria-hidden="true" />Đăng xuất</button>
+              </section>}
             </div>
-            <span className="topbar-role">{roleLabels[session.user.role]}</span>
-            <button
-              className="btn btn-outline-danger btn-sm"
-              onClick={() => logout()}
-            >
-              <i className="bi bi-box-arrow-right me-2" />
-              Đăng xuất
-            </button>
           </div>
         </header>
         <div className="admin-content">
@@ -99,6 +98,9 @@ export function Layout() {
           <Outlet />
         </div>
       </section>
+      {profileOpen && <Modal title="Thông tin cá nhân" onClose={() => setProfileOpen(false)}>
+        <dl className="profile-details"><dt>Họ tên</dt><dd>{session.user.fullName}</dd><dt>Vai trò</dt><dd>{roleLabels[session.user.role]}</dd><dt>Email</dt><dd>{session.user.email}</dd></dl>
+      </Modal>}
     </main>
   );
 }

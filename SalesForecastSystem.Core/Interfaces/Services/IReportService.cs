@@ -5,6 +5,7 @@ namespace SalesForecastSystem.Core.Interfaces.Services;
 
 public interface IReportService
 {
+    Task<StockAlertsResponse> GetStockAlertsAsync(CancellationToken cancellationToken = default);
     Task<ProfitReportResponse> GetProfitAsync(SalesTrendQuery request, CancellationToken cancellationToken = default);
     Task<ServiceResult<StaffGroupSalesResponse>> GetSalesByGroupAsync(StaffGroupSalesQuery request, CancellationToken cancellationToken = default);
     Task<SalesSummaryResponse> GetSalesSummaryAsync(SalesReportQuery request, CancellationToken cancellationToken = default);

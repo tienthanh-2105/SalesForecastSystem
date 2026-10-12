@@ -8,6 +8,38 @@ namespace SalesForecastSystem.Infrastructure.Services;
 
 public sealed class ReportService(AppDbContext context) : IReportService
 {
+    public async Task<StockAlertsResponse> GetStockAlertsAsync(CancellationToken cancellationToken = default)
+    {
+        var checkedAt = DateTime.UtcNow;
+        var today = checkedAt.AddHours(7).Date;
+        var startDate = today.AddDays(-29);
+        var until = today.AddDays(1);
+        // Read stock and ranking from the same database state while posting may be concurrent.
+        await using var transaction = await context.Database.BeginTransactionAsync(
+            System.Data.IsolationLevel.Serializable, cancellationToken);
+        var ranking = await (from order in context.SalesOrders.AsNoTracking()
+            join item in context.SalesOrderItems.AsNoTracking() on order.SalesOrderId equals item.SalesOrderId
+            join product in context.Products.AsNoTracking() on item.ProductId equals product.ProductId
+            where order.Status == "Completed" && order.OrderDate >= startDate && order.OrderDate < until && product.IsActive
+            group item by item.ProductId into g
+            select new { ProductId = g.Key, Quantity = g.Sum(i => (long)i.Quantity) })
+            .OrderByDescending(r => r.Quantity).ThenBy(r => r.ProductId).ToListAsync(cancellationToken);
+        var stock = await context.Products.AsNoTracking().Where(p => p.IsActive).Select(p => new {
+            p.ProductId, p.SKU, p.Name, p.MinimumStockLevel,
+            Quantity = context.InventoryBalances.Where(b => b.ProductId == p.ProductId)
+                .Sum(b => (long?)b.QuantityOnHand) ?? 0
+        }).Where(p => p.Quantity <= p.MinimumStockLevel).ToListAsync(cancellationToken);
+        var quantities = ranking.ToDictionary(r => r.ProductId, r => r.Quantity);
+        var bestSellers = ranking.Take(10).Select(r => r.ProductId).ToHashSet();
+        var items = stock.Select(p => new StockAlertResponse(p.ProductId, p.SKU, p.Name,
+            p.Quantity, p.MinimumStockLevel, quantities.GetValueOrDefault(p.ProductId),
+            bestSellers.Contains(p.ProductId), p.Quantity <= 0))
+            .OrderByDescending(p => p.IsBestSeller).ThenByDescending(p => p.IsOutOfStock)
+            .ThenByDescending(p => p.QuantitySold).ThenBy(p => p.ProductId).ToList();
+        await transaction.CommitAsync(cancellationToken);
+        return new(checkedAt, startDate, today, items);
+    }
+
     public async Task<ServiceResult<StaffGroupSalesResponse>> GetSalesByGroupAsync(StaffGroupSalesQuery request, CancellationToken cancellationToken = default)
     {
         var ids = request.StaffUserIds.Distinct().Order().ToArray();
