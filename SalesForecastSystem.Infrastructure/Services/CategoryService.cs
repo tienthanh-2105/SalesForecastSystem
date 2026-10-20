@@ -15,9 +15,8 @@ public sealed class CategoryService(AppDbContext context) : ICategoryService
     {
         return await context.Categories
             .AsNoTracking()
-            .OrderBy(category => category.ParentCategoryId.HasValue)
-            .ThenBy(category => category.ParentCategoryId)
-            .ThenBy(category => category.Name)
+            .OrderBy(category => category.Code)
+            .ThenBy(category => category.CategoryId)
             .Select(ToResponseExpression())
             .ToListAsync(cancellationToken);
     }
@@ -127,7 +126,7 @@ public sealed class CategoryService(AppDbContext context) : ICategoryService
         {
             return ServiceResult<bool>.Failure(ServiceErrorType.NotFound, "Category was not found.");
         }
-        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 547 })
+        catch (DbUpdateException exception) when (exception.GetBaseException() is SqlException { Number: 547 })
         {
             return ServiceResult<bool>.Failure(
                 ServiceErrorType.Conflict,
@@ -146,7 +145,7 @@ public sealed class CategoryService(AppDbContext context) : ICategoryService
     }
 
     private static bool IsDuplicate(DbUpdateException exception) =>
-        exception.InnerException is SqlException { Number: 2601 or 2627 };
+        exception.GetBaseException() is SqlException { Number: 2601 or 2627 };
 
     private async Task<ServiceResult<CategoryResponse>?> ValidateParentAsync(
         int? parentCategoryId,

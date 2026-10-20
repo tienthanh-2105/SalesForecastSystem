@@ -59,11 +59,12 @@ it("filters sales analysis and staff group with the page-specific date and catal
   });
   vi.stubGlobal("fetch", fetcher); wrap(<SalesAnalysisPage />);
   expect(await screen.findByText("Sản phẩm A")).toBeInTheDocument();
-  expect(await screen.findByText("Nhân viên A")).toBeInTheDocument();
-  fireEvent.change(screen.getByLabelText("Mã nhân viên, cách nhau bằng dấu phẩy"), { target: { value: "1,2,1" } });
+  expect((await screen.findAllByText("Nhân viên A")).length).toBeGreaterThan(0);
+  fireEvent.click(screen.getByText("Chọn nhân viên theo tên"));
+  fireEvent.click(screen.getByLabelText("Nhân viên A"));
   fireEvent.click(screen.getByText("Xem doanh số nhóm"));
   await waitFor(() => expect(fetcher.mock.calls.some(([url]) => url.includes("sales-by-group"))).toBe(true));
   const url = fetcher.mock.calls.find(([url]) => url.includes("sales-by-group"))![0];
   const query = new URL(url, "http://test").searchParams;
-  expect(query.getAll("StaffUserIds")).toEqual(["1", "2"]); expect(query.has("StaffUserId")).toBe(false);
+  expect(query.getAll("StaffUserIds")).toEqual(["1"]); expect(query.has("StaffUserId")).toBe(false);
 });

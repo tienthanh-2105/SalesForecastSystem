@@ -37,7 +37,7 @@ export function Layout() {
           {Object.entries(sections)
             .filter(([key]) => allowed(session.user.role, key))
             .map(([key, config]) => (
-              key === "reports" ? <div className="report-nav-group" key={key}>
+              key === "reports" && session.user.role === "Admin" ? <div className="report-nav-group" key={key}>
                 <button className={`admin-nav-item report-nav-trigger ${location.pathname.startsWith("/reports") ? "active" : ""}`} aria-expanded={reportsExpanded} onClick={() => setReportsExpanded(value => !value)}>
                   <i aria-hidden="true" className={`bi bi-${config.icon}`} /><span>{config.label}</span><i aria-hidden="true" className={`bi bi-chevron-${reportsExpanded ? "down" : "right"} report-nav-chevron`} />
                 </button>

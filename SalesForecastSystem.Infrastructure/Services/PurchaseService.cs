@@ -2,6 +2,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SalesForecastSystem.Core.Common;
 using SalesForecastSystem.Core.DTOs.Purchases;
+using SalesForecastSystem.Core.Enums;
 using SalesForecastSystem.Core.Interfaces.Services;
 using SalesForecastSystem.Infrastructure.Data;
 using SalesForecastSystem.Infrastructure.Entities;
@@ -17,7 +18,7 @@ public sealed class PurchaseService(AppDbContext context) : IPurchaseService
         if (request.SupplierId.HasValue) query = query.Where(x => x.SupplierId == request.SupplierId);
         if (request.FromDate.HasValue) query = query.Where(x => x.OrderDate >= request.FromDate.Value.Date);
         if (request.ToDate.HasValue) query = query.Where(x => x.OrderDate <= request.ToDate.Value.Date);
-        if (request.Status is not null) query = query.Where(x => x.Status == request.Status);
+        if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status.Value);
         var total = await query.CountAsync(cancellationToken);
         var skip = ((long)request.Page - 1) * request.PageSize;
         var items = skip >= total ? [] : await query.OrderByDescending(x => x.OrderDate).ThenByDescending(x => x.PurchaseOrderId)
@@ -47,7 +48,7 @@ public sealed class PurchaseService(AppDbContext context) : IPurchaseService
     {
         var order = await context.PurchaseOrders.SingleOrDefaultAsync(x => x.PurchaseOrderId == id, cancellationToken);
         if (order is null) return NotFound();
-        if (order.Status != "Draft") return Conflict("Only draft purchase orders can be edited.");
+        if (order.Status != PurchaseOrderStatus.Draft) return Conflict("Only draft purchase orders can be edited.");
         var error = await ValidateReferencesAsync(request, cancellationToken);
         if (error is not null) return error;
         Apply(order, request);
@@ -89,7 +90,7 @@ public sealed class PurchaseService(AppDbContext context) : IPurchaseService
     {
         var order = await context.PurchaseOrders.AsNoTracking().SingleOrDefaultAsync(x => x.PurchaseOrderId == id, cancellationToken);
         if (order is null) return ServiceResult<bool>.Failure(ServiceErrorType.NotFound, "Purchase order was not found.");
-        if (order.Status != "Draft") return ServiceResult<bool>.Failure(ServiceErrorType.Conflict, "Only draft purchase orders can be edited.");
+        if (order.Status != PurchaseOrderStatus.Draft) return ServiceResult<bool>.Failure(ServiceErrorType.Conflict, "Only draft purchase orders can be edited.");
         var item = await context.PurchaseOrderItems.SingleOrDefaultAsync(x => x.PurchaseOrderId == id && x.PurchaseOrderItemId == itemId, cancellationToken);
         if (item is null) return ServiceResult<bool>.Failure(ServiceErrorType.NotFound, "Purchase item was not found.");
         context.PurchaseOrderItems.Remove(item);
@@ -111,13 +112,13 @@ public sealed class PurchaseService(AppDbContext context) : IPurchaseService
     {
         try
         {
-            var changed = await context.PurchaseOrders.Where(x => x.PurchaseOrderId == id && x.Status == "Draft")
-                .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.Status, "Cancelled"), cancellationToken);
+            var changed = await context.PurchaseOrders.Where(x => x.PurchaseOrderId == id && x.Status == PurchaseOrderStatus.Draft)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.Status, PurchaseOrderStatus.Cancelled), cancellationToken);
             if (changed == 0)
             {
                 var status = await context.PurchaseOrders.AsNoTracking().Where(x => x.PurchaseOrderId == id)
-                    .Select(x => x.Status).SingleOrDefaultAsync(cancellationToken);
-                return status is null ? NotFound() : status == "Cancelled"
+                    .Select(x => (PurchaseOrderStatus?)x.Status).SingleOrDefaultAsync(cancellationToken);
+                return status is null ? NotFound() : status == PurchaseOrderStatus.Cancelled
                     ? await GetByIdAsync(id, cancellationToken) : Conflict("Only draft purchase orders can be cancelled.");
             }
         }
@@ -129,7 +130,7 @@ public sealed class PurchaseService(AppDbContext context) : IPurchaseService
     {
         var order = await context.PurchaseOrders.Include(x => x.Items).SingleOrDefaultAsync(x => x.PurchaseOrderId == id, cancellationToken);
         if (order is null) return ServiceResult<bool>.Failure(ServiceErrorType.NotFound, "Purchase order was not found.");
-        if (order.Status != "Draft") return ServiceResult<bool>.Failure(ServiceErrorType.Conflict, "Only draft purchase orders can be deleted.");
+        if (order.Status != PurchaseOrderStatus.Draft) return ServiceResult<bool>.Failure(ServiceErrorType.Conflict, "Only draft purchase orders can be deleted.");
         context.PurchaseOrderItems.RemoveRange(order.Items);
         context.PurchaseOrders.Remove(order);
         try { await context.SaveChangesAsync(cancellationToken); }
@@ -148,9 +149,9 @@ public sealed class PurchaseService(AppDbContext context) : IPurchaseService
 
     private async Task<ServiceResult<PurchaseResponse>?> CheckDraftAndProductAsync(long id, int productId, CancellationToken cancellationToken)
     {
-        var status = await context.PurchaseOrders.AsNoTracking().Where(x => x.PurchaseOrderId == id).Select(x => x.Status).SingleOrDefaultAsync(cancellationToken);
+        var status = await context.PurchaseOrders.AsNoTracking().Where(x => x.PurchaseOrderId == id).Select(x => (PurchaseOrderStatus?)x.Status).SingleOrDefaultAsync(cancellationToken);
         if (status is null) return NotFound();
-        if (status != "Draft") return Conflict("Only draft purchase orders can be edited.");
+        if (status != PurchaseOrderStatus.Draft) return Conflict("Only draft purchase orders can be edited.");
         if (!await context.Products.AnyAsync(x => x.ProductId == productId && x.IsActive, cancellationToken))
             return ServiceResult<PurchaseResponse>.Failure(ServiceErrorType.Validation, "Active product is required.", nameof(PurchaseItemRequest.ProductId));
         return null;
@@ -179,7 +180,7 @@ public sealed class PurchaseService(AppDbContext context) : IPurchaseService
 
     private static ServiceResult<PurchaseResponse> DatabaseError(DbUpdateException ex)
     {
-        if (ex.InnerException is SqlException sql)
+        if (ex.GetBaseException() is SqlException sql)
         {
             if (sql.Number is 2601 or 2627) return Conflict("Purchase order number or product already exists in this order.");
             if (sql.Number is >= 51201 and <= 51203) return Conflict("Purchase order changed concurrently.");

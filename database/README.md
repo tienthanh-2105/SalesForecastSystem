@@ -26,7 +26,7 @@ Run:
 
 The deployment is idempotent. It creates a new database when needed, upgrades an existing Vietnamese schema, rebuilds database operations and optionally runs rollback-based verification.
 
-The current schema version is 10.
+The current schema version is 12.
 
 ## Tables
 

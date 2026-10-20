@@ -71,7 +71,7 @@ public sealed class SupplierService(AppDbContext context) : ISupplierService
     {
         try { await context.SaveChangesAsync(cancellationToken); }
         catch (DbUpdateConcurrencyException) { return NotFound(); }
-        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 or 2627 })
+        catch (DbUpdateException exception) when (exception.GetBaseException() is SqlException { Number: 2601 or 2627 })
         { return DuplicateTaxCode(); }
         return null;
     }

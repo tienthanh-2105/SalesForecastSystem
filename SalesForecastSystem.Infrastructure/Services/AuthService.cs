@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using SalesForecastSystem.Core.DTOs.Auth;
+using SalesForecastSystem.Core.Enums;
 using SalesForecastSystem.Core.Interfaces.Services;
 using SalesForecastSystem.Infrastructure.Data;
 using SalesForecastSystem.Infrastructure.Entities;
@@ -29,7 +30,7 @@ public sealed class AuthService(
             .SingleOrDefaultAsync(account => account.Email == normalizedEmail, cancellationToken);
 
         if (user is null ||
-            user.Status != UserStatuses.Active ||
+            user.Status != UserStatus.Active ||
             !user.Role.IsActive)
         {
             return null;

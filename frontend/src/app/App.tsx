@@ -26,7 +26,12 @@ function Access({ section }: { section: Section }) {
   const { session } = useAuth();
   const location = useLocation();
   if (!session || !allowed(session.user.role, section)) return <Navigate to="/forbidden" replace />;
-  if (section === "reports") return location.pathname.endsWith("/analysis") ? <SalesAnalysisPage /> : <ReportPage />;
+  if (section === "reports") {
+    if (location.pathname.endsWith("/analysis")) {
+      return session.user.role === "Admin" ? <SalesAnalysisPage /> : <Navigate to="/forbidden" replace />;
+    }
+    return <ReportPage />;
+  }
   return section === "purchases" ? <PurchasePage /> : <ManagementPage key={section} section={section} />;
 }
 function Home() {

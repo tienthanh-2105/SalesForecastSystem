@@ -1,0 +1,52 @@
+{
+  "metadata": {
+    "name": "Tài khoản mẫu nhân viên kho và nhân viên bán hàng",
+    "date": "2026-10-13",
+    "testOnly": true,
+    "note": "Thông tin giả chỉ dùng thử nghiệm. Không gửi cả file làm một request; đăng nhập Admin và gửi từng object trong users đến POST /api/users. Đổi mật khẩu sau khi tạo tài khoản."
+  },
+  "users": [
+    {
+      "fullName": "Nguyễn Minh An",
+      "email": "kho01.demo@example.com",
+      "phoneNumber": "0912345601",
+      "role": "WarehouseManager",
+      "password": "DemoKho!2026#01"
+    },
+    {
+      "fullName": "Trần Hoàng Bảo",
+      "email": "kho02.demo@example.com",
+      "phoneNumber": "0912345602",
+      "role": "WarehouseManager",
+      "password": "DemoKho!2026#02"
+    },
+    {
+      "fullName": "Lê Thị Ngọc Mai",
+      "email": "kho03.demo@example.com",
+      "phoneNumber": "0912345603",
+      "role": "WarehouseManager",
+      "password": "DemoKho!2026#03"
+    },
+    {
+      "fullName": "Phạm Gia Huy",
+      "email": "banhang01.demo@example.com",
+      "phoneNumber": "0912345604",
+      "role": "SalesStaff",
+      "password": "DemoBanHang!2026#01"
+    },
+    {
+      "fullName": "Võ Ngọc Trâm",
+      "email": "banhang02.demo@example.com",
+      "phoneNumber": "0912345605",
+      "role": "SalesStaff",
+      "password": "DemoBanHang!2026#02"
+    },
+    {
+      "fullName": "Đặng Quốc Khánh",
+      "email": "banhang03.demo@example.com",
+      "phoneNumber": "0912345606",
+      "role": "SalesStaff",
+      "password": "DemoBanHang!2026#03"
+    }
+  ]
+}

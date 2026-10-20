@@ -6,6 +6,7 @@
     "priceNote": "Giá bán được ghi nhận từ các trang của Thế Giới Di Động và có thể thay đổi theo khu vực hoặc chương trình khuyến mãi.",
     "inventoryNote": "minimumStockLevel và suggestedOpeningStock là dữ liệu giả lập phục vụ demo, không phải tồn kho của Thế Giới Di Động.",
     "skuNote": "SKU do hệ thống nội bộ tạo, không phải mã hàng của Thế Giới Di Động.",
+    "unitNote": "Đơn vị sản phẩm sử dụng đúng danh sách trong giao diện: Cái, Chiếc, Bộ, Hộp, Máy.",
     "imageNote": "imageUrl để null nhằm tránh hotlink ảnh từ CDN bên thứ ba. Có thể tải ảnh hợp lệ lên kho lưu trữ của hệ thống rồi cập nhật URL.",
     "apiImportNote": "Tạo danh mục gốc trước, lấy ID trả về rồi dùng parentKey để tạo danh mục con. Sau đó đổi categoryKey của từng sản phẩm thành categoryId khi gọi POST /api/products. Không gửi suggestedOpeningStock trong ProductRequest; tồn kho phải được tạo bằng giao dịch nhập kho đã ghi sổ."
   },
@@ -55,7 +56,7 @@
     {
       "sku": "TGDD-LAP-HP245G10",
       "name": "HP 245 G10 R5 7530U (B8PF9AT) 8GB/512GB",
-      "unit": "Chiếc",
+      "unit": "Máy",
       "description": "Laptop HP dùng Ryzen 5 7530U, RAM 8GB, SSD 512GB.",
       "imageUrl": null,
       "categoryKey": "LAPTOP",
@@ -68,7 +69,7 @@
     {
       "sku": "TGDD-LAP-LNV-IP3-15ARP10",
       "name": "Lenovo IdeaPad Slim 3 15ARP10 R5 7535HS 16GB/512GB",
-      "unit": "Chiếc",
+      "unit": "Máy",
       "description": "Laptop Lenovo dùng Ryzen 5 7535HS, RAM 16GB, SSD 512GB.",
       "imageUrl": null,
       "categoryKey": "LAPTOP",
@@ -107,7 +108,7 @@
     {
       "sku": "TGDD-CAB-BAS-CB000135",
       "name": "Cáp sạc nhanh Baseus Titanium Alloy CB000135 1m",
-      "unit": "Sợi",
+      "unit": "Cái",
       "description": "Cáp sạc nhanh Baseus dài 1 mét.",
       "imageUrl": null,
       "categoryKey": "CHARGING_CABLE",
@@ -120,7 +121,7 @@
     {
       "sku": "TGDD-CAB-ANK-A8060",
       "name": "Cáp sạc nhanh và truyền dữ liệu Anker Zolo A8060 1.8m",
-      "unit": "Sợi",
+      "unit": "Cái",
       "description": "Cáp Anker Zolo dài 1.8 mét, hỗ trợ sạc nhanh và truyền dữ liệu.",
       "imageUrl": null,
       "categoryKey": "CHARGING_CABLE",

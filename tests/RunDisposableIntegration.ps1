@@ -1,4 +1,4 @@
-param([string]$Server = '.\SQLEXPRESS', [switch]$ExcelOnly)
+﻿param([string]$Server = '.\SQLEXPRESS', [switch]$ExcelOnly)
 $ErrorActionPreference = 'Stop'
 
 $testId = [guid]::NewGuid().ToString('N')
@@ -16,7 +16,7 @@ try {
     $scripts = @('001_schema.sql', '004_auth_sessions.sql', '005_english_schema.sql',
         '006_english_operations.sql', '007_schema_cleanup.sql', '008_english_defaults.sql',
         '009_product_enhancements.sql', '010_customers.sql', '011_order_workflow.sql',
-        '012_hierarchical_categories.sql', '013_category_codes.sql', '014_user_codes.sql')
+        '012_hierarchical_categories.sql', '013_category_codes.sql', '014_user_codes.sql', '015_forecast_run_diagnostics.sql', '016_performance_indexes.sql')
     foreach ($script in $scripts) {
         $source = Join-Path $projectRoot "database/$script"
         $destination = Join-Path $scriptDirectory $script
@@ -47,3 +47,4 @@ finally {
         Remove-Item -LiteralPath $resolvedDirectory -Recurse -Force
     }
 }
+

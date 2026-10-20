@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 using SalesForecastSystem.Core.Helpers;
+using SalesForecastSystem.Core.Enums;
 
 namespace SalesForecastSystem.Core.DTOs.Users;
 
@@ -10,7 +11,7 @@ public sealed class UserQueryRequest : IValidatableObject
     public string? Search { get; set; }
 
     public string? Role { get; set; }
-    public string? Status { get; set; }
+    public UserStatus? Status { get; set; }
 
     [Range(1, int.MaxValue, ErrorMessage = "Page must be at least 1.")]
     public int Page { get; set; } = 1;
@@ -26,11 +27,8 @@ public sealed class UserQueryRequest : IValidatableObject
             yield return new ValidationResult("Role is invalid.", [nameof(Role)]);
         }
 
-        if (!string.IsNullOrWhiteSpace(Status) &&
-            !UserStatusValues.Values.Contains(Status.Trim(), StringComparer.OrdinalIgnoreCase))
-        {
+        if (Status.HasValue && !Enum.IsDefined(Status.Value))
             yield return new ValidationResult("Status is invalid.", [nameof(Status)]);
-        }
     }
 }
 
@@ -73,12 +71,11 @@ public sealed class UserUpdateRequest : UserWriteRequest, IValidatableObject
 public sealed class UserStatusRequest : IValidatableObject
 {
     [Required(ErrorMessage = "Status is required.")]
-    public string Status { get; set; } = string.Empty;
+    public UserStatus? Status { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if (string.IsNullOrWhiteSpace(Status) ||
-            !UserStatusValues.Values.Contains(Status.Trim(), StringComparer.OrdinalIgnoreCase))
+        if (!Status.HasValue || !Enum.IsDefined(Status.Value))
         {
             yield return new ValidationResult("Status is invalid.", [nameof(Status)]);
         }
@@ -101,13 +98,6 @@ public sealed class ResetPasswordRequest : IValidatableObject
                 [nameof(NewPassword)]);
         }
     }
-}
-
-public static class UserStatusValues
-{
-    public const string Active = "Active";
-    public const string Locked = "Locked";
-    public static readonly string[] Values = [Active, Locked];
 }
 
 internal static class UserRequestValidation

@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using SalesForecastSystem.Core.Helpers;
+using SalesForecastSystem.Core.Enums;
 using SalesForecastSystem.Infrastructure.Data;
 using SalesForecastSystem.Infrastructure.Entities;
 
@@ -47,7 +48,7 @@ public static class DataSeeder
             FullName = "Administrator",
             Email = normalizedEmail,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12),
-            Status = UserStatuses.Active,
+            Status = UserStatus.Active,
             CreatedAt = DateTime.UtcNow
         });
 

@@ -7,6 +7,7 @@ using SalesForecastSystem.Core.Common;
 using SalesForecastSystem.Core.DTOs.Excel;
 using SalesForecastSystem.Core.DTOs.Products;
 using SalesForecastSystem.Core.DTOs.Sales;
+using SalesForecastSystem.Core.Enums;
 using SalesForecastSystem.Core.Interfaces.Services;
 using SalesForecastSystem.Infrastructure.Data;
 using SalesForecastSystem.Infrastructure.Entities;
@@ -102,7 +103,7 @@ public sealed class ExcelService(AppDbContext context, IProductService products,
                 {
                     OrderNumber = first["orderNumber"], WarehouseId = WarehouseId(first["warehouseCode"]),
                     CustomerId = selectedCustomers[first["customerPhone"]].CustomerId, CreatedByUserId = userId,
-                    OrderDate = DateTime.ParseExact(first["orderDate"], "yyyy-MM-dd", CultureInfo.InvariantCulture), Status = "Draft",
+                    OrderDate = DateTime.ParseExact(first["orderDate"], "yyyy-MM-dd", CultureInfo.InvariantCulture), Status = SalesOrderStatus.Draft,
                     CustomerName = first["customerName"], CustomerPhone = first["customerPhone"], ShippingAddress = first["shippingAddress"], Notes = Optional(first["notes"]),
                     Items = group.Select(r => new SalesOrderItem { ProductId = productMap[ExcelWorkbook.Key(r["sku"])].ProductId, Quantity = int.Parse(r["quantity"], CultureInfo.InvariantCulture), UnitPrice = MoneyValue(r["unitPrice"]), Discount = string.IsNullOrEmpty(r["discount"]) ? 0 : MoneyValue(r["discount"]) }).ToList()
                 };
@@ -164,7 +165,13 @@ public sealed class ExcelService(AppDbContext context, IProductService products,
     private static string? Optional(string text) => string.IsNullOrWhiteSpace(text) ? null : text;
     private static decimal MoneyValue(string value) => decimal.Parse(value, CultureInfo.InvariantCulture);
     private static int WarehouseId(string code) => Regex.IsMatch(ExcelWorkbook.Key(code), @"^KHO-\d+$") && int.TryParse(code[4..], out var id) && id > 0 && ExcelWorkbook.Key(code) == $"KHO-{id:D4}" ? id : 0;
-    private static bool IsDatabaseConflict(Exception ex) => (ex as SqlException ?? ex.InnerException as SqlException)?.Number is 2601 or 2627 or 547 or 1205 or 1222 or 51202 or 51203 or 51204;
+    private static bool IsDatabaseConflict(Exception ex)
+    {
+        for (var current = ex; current != null; current = current.InnerException)
+            if (current is SqlException sqlEx && sqlEx.Number is 2601 or 2627 or 547 or 1205 or 1222 or 51202 or 51203 or 51204)
+                return true;
+        return false;
+    }
 
     public async Task<ServiceResult<ExcelFileResponse>> ExportProductsAsync(ProductQueryRequest request, CancellationToken ct)
     {

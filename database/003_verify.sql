@@ -30,7 +30,7 @@ BEGIN
     WHERE Name = 'Admin';
     SET @UserId = SCOPE_IDENTITY();
 
-    INSERT dbo.Categories(Name) VALUES (@Tag);
+    INSERT dbo.Categories(Code, Name) VALUES (CONCAT('DM-', SUBSTRING(@Tag, 1, 17)), @Tag);
     SET @CategoryId = SCOPE_IDENTITY();
 
     INSERT dbo.Products(CategoryId, SKU, Name, Unit, SalePrice)

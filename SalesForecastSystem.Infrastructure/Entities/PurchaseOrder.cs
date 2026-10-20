@@ -1,5 +1,7 @@
 namespace SalesForecastSystem.Infrastructure.Entities;
 
+using SalesForecastSystem.Core.Enums;
+
 public sealed class PurchaseOrder
 {
     public long PurchaseOrderId { get; set; }
@@ -8,7 +10,7 @@ public sealed class PurchaseOrder
     public int SupplierId { get; set; }
     public int CreatedByUserId { get; set; }
     public DateTime OrderDate { get; set; }
-    public string Status { get; set; } = "Draft";
+    public PurchaseOrderStatus Status { get; set; } = PurchaseOrderStatus.Draft;
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? PostedAt { get; set; }

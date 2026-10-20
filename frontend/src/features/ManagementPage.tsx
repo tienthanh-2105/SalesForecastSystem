@@ -57,6 +57,10 @@ export function ManagementPage({ section }: { section: Section }) {
   query.set("page", String(page));
   query.set("pageSize", "10");
   if (debounced) query.set("search", debounced);
+  if (section === "products") {
+    query.set("sortBy", "productId");
+    query.set("sortDirection", "asc");
+  }
   const allowedFilters =
     section === "products"
       ? ["categoryId", "stockStatus"]
@@ -79,9 +83,13 @@ export function ManagementPage({ section }: { section: Section }) {
     enabled: section !== "categories",
   });
   let rows = data.data?.items || [];
+  let categoryTotal = 0;
   if (section === "categories") {
     const all = categories.data || [];
     const seen = new Set<number>();
+    const compareCategoryCode = (a: Category, b: Category) =>
+      (a.code || "").localeCompare(b.code || "", undefined, { numeric: true }) ||
+      a.categoryId - b.categoryId;
     const ordered: Category[] = [];
     const visit = (c: Category) => {
       if (seen.has(c.categoryId)) return;
@@ -89,11 +97,12 @@ export function ManagementPage({ section }: { section: Section }) {
       ordered.push(c);
       all
         .filter((child) => child.parentCategoryId === c.categoryId)
+        .sort(compareCategoryCode)
         .forEach(visit);
     };
-    all.filter((c) => !c.parentCategoryId).forEach(visit);
-    all.forEach(visit);
-    rows = ordered.filter(
+    all.filter((c) => !c.parentCategoryId).sort(compareCategoryCode).forEach(visit);
+    all.sort(compareCategoryCode).forEach(visit);
+    const filtered = ordered.filter(
       (c) =>
         (!debounced ||
           `${c.code} ${c.name} ${c.description || ""}`
@@ -102,14 +111,18 @@ export function ManagementPage({ section }: { section: Section }) {
         (!params.get("isActive") ||
           c.isActive === (params.get("isActive") === "true")),
     );
+    categoryTotal = filtered.length;
+    rows = filtered.slice((page - 1) * 10, page * 10);
   }
   const loading =
     section === "categories" ? categories.isPending : data.isPending;
   const failure = section === "categories" ? categories.error : data.error;
   const total =
-    section === "categories" ? rows.length : data.data?.totalItems || 0;
+    section === "categories" ? categoryTotal : data.data?.totalItems || 0;
   const pages =
-    section === "categories" ? 1 : Math.max(1, data.data?.totalPages || 1);
+    section === "categories"
+      ? Math.max(1, Math.ceil(categoryTotal / 10))
+      : Math.max(1, data.data?.totalPages || 1);
   const change = (key: string, value: string) => {
     const next = new URLSearchParams(params);
     if (value) next.set(key, value);
@@ -203,14 +216,13 @@ export function ManagementPage({ section }: { section: Section }) {
         )}
         <footer className="d-flex justify-content-between p-3">
           <small>
-            {total} kết quả · Trang {section === "categories" ? 1 : page}/
-            {pages}
+            {total} kết quả · Trang {page}/{pages}
           </small>
           <div>
             <button
               className="btn btn-sm btn-light border"
               aria-label="Trang trước"
-              disabled={page <= 1 || section === "categories"}
+              disabled={page <= 1}
               onClick={() => change("page", String(page - 1))}
             >
               ‹
@@ -260,7 +272,7 @@ export function ManagementPage({ section }: { section: Section }) {
       {history && <CustomerHistory customer={history} onClose={() => setHistory(null)} />}
       {confirmation && (
         <Modal
-          title="Xác nhận thao tác"
+          title={section === "products" ? "Thông báo xác nhận" : "Xác nhận thao tác"}
           onClose={() => {
             setConfirmation(null);
             setError("");
@@ -282,7 +294,7 @@ export function ManagementPage({ section }: { section: Section }) {
             </div>
           )}
           <button
-            className={`btn ${["delete", "cancel"].includes(confirmation.kind) ? "btn-danger" : "btn-primary"}`}
+            className={`btn ${["delete", "cancel"].includes(confirmation.kind) ? "btn-danger" : "btn-primary"} ${section === "products" ? "product-confirm-button" : ""}`}
             disabled={busy}
             onClick={async () => {
               setBusy(true);

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using SalesForecastSystem.Core.Enums;
 using SalesForecastSystem.Infrastructure.Data;
 using SalesForecastSystem.Infrastructure.Entities;
 
@@ -29,7 +30,7 @@ public sealed class SessionJwtEvents(AppDbContext context) : JwtBearerEvents
         if (session is null ||
             session.RevokedAt is not null ||
             session.ExpiresAt <= DateTime.UtcNow ||
-            session.User.Status != UserStatuses.Active ||
+            session.User.Status != UserStatus.Active ||
             !session.User.Role.IsActive ||
             session.User.Role.Name != tokenRole)
         {

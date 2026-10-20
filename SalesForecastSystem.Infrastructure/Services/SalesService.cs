@@ -2,6 +2,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SalesForecastSystem.Core.Common;
 using SalesForecastSystem.Core.DTOs.Sales;
+using SalesForecastSystem.Core.Enums;
 using SalesForecastSystem.Core.Interfaces.Services;
 using SalesForecastSystem.Infrastructure.Data;
 using SalesForecastSystem.Infrastructure.Entities;
@@ -25,7 +26,7 @@ public sealed class SalesService(AppDbContext context) : ISalesService
         if (request.CreatedByUserId.HasValue) query = query.Where(x => x.CreatedByUserId == request.CreatedByUserId);
         if (request.FromDate.HasValue) query = query.Where(x => x.OrderDate >= request.FromDate.Value.Date);
         if (request.ToDate.HasValue) query = query.Where(x => x.OrderDate <= request.ToDate.Value.Date);
-        if (request.Status is not null) query = query.Where(x => x.Status == request.Status);
+        if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status.Value);
         var total = await query.CountAsync(cancellationToken);
         var skip = ((long)request.Page - 1) * request.PageSize;
         var items = skip >= total ? [] : await query.OrderByDescending(x => x.OrderDate).ThenByDescending(x => x.SalesOrderId)
@@ -58,19 +59,9 @@ public sealed class SalesService(AppDbContext context) : ISalesService
     {
         var order = await context.SalesOrders.SingleOrDefaultAsync(x => x.SalesOrderId == id, cancellationToken);
         if (order is null) return NotFound();
-        if (order.Status != "Draft") return Conflict("Only draft sales orders can be edited.");
+        if (order.Status != SalesOrderStatus.Draft) return Conflict("Only draft sales orders can be edited.");
         var error = await ValidateReferencesAsync(request, cancellationToken);
         if (error is not null) return error;
-        if (order.WarehouseId != request.WarehouseId)
-        {
-            var items = await context.SalesOrderItems.Where(x => x.SalesOrderId == id).ToListAsync(cancellationToken);
-            foreach (var item in items)
-            {
-                var stock = await context.InventoryTransactions.Where(x => x.WarehouseId == request.WarehouseId && x.ProductId == item.ProductId)
-                    .SumAsync(x => (long?)x.Quantity, cancellationToken) ?? 0;
-                if (item.Quantity > stock) return Conflict($"Insufficient stock in selected warehouse. Product {item.ProductId}: available {stock}.");
-            }
-        }
         Apply(order, request);
         await SnapshotCustomerAsync(order, cancellationToken);
         try { await context.SaveChangesAsync(cancellationToken); }
@@ -82,7 +73,6 @@ public sealed class SalesService(AppDbContext context) : ISalesService
     public async Task<ServiceResult<SalesResponse>> AddItemAsync(long id, SalesItemRequest request, CancellationToken cancellationToken)
     {
         var error = await CheckDraftAndProductAsync(id, request.ProductId, cancellationToken);
-        error ??= await CheckStockAsync(id, request.ProductId, request.Quantity, cancellationToken);
         if (error is not null) return error;
         context.SalesOrderItems.Add(new SalesOrderItem
         {
@@ -97,7 +87,6 @@ public sealed class SalesService(AppDbContext context) : ISalesService
     public async Task<ServiceResult<SalesResponse>> UpdateItemAsync(long id, long itemId, SalesItemRequest request, CancellationToken cancellationToken)
     {
         var error = await CheckDraftAndProductAsync(id, request.ProductId, cancellationToken);
-        error ??= await CheckStockAsync(id, request.ProductId, request.Quantity, cancellationToken);
         if (error is not null) return error;
         var item = await context.SalesOrderItems.SingleOrDefaultAsync(x => x.SalesOrderId == id && x.SalesOrderItemId == itemId, cancellationToken);
         if (item is null) return ServiceResult<SalesResponse>.Failure(ServiceErrorType.NotFound, "Sales item was not found.");
@@ -115,7 +104,7 @@ public sealed class SalesService(AppDbContext context) : ISalesService
     {
         var order = await context.SalesOrders.AsNoTracking().SingleOrDefaultAsync(x => x.SalesOrderId == id, cancellationToken);
         if (order is null) return ServiceResult<bool>.Failure(ServiceErrorType.NotFound, "Sales order was not found.");
-        if (order.Status != "Draft") return ServiceResult<bool>.Failure(ServiceErrorType.Conflict, "Only draft sales orders can be edited.");
+        if (order.Status != SalesOrderStatus.Draft) return ServiceResult<bool>.Failure(ServiceErrorType.Conflict, "Only draft sales orders can be edited.");
         var item = await context.SalesOrderItems.SingleOrDefaultAsync(x => x.SalesOrderId == id && x.SalesOrderItemId == itemId, cancellationToken);
         if (item is null) return ServiceResult<bool>.Failure(ServiceErrorType.NotFound, "Sales item was not found.");
         context.SalesOrderItems.Remove(item);
@@ -127,9 +116,9 @@ public sealed class SalesService(AppDbContext context) : ISalesService
     public async Task<ServiceResult<SalesResponse>> CompleteAsync(long id, CancellationToken cancellationToken)
     {
         var status = await context.SalesOrders.AsNoTracking().Where(x => x.SalesOrderId == id)
-            .Select(x => x.Status).SingleOrDefaultAsync(cancellationToken);
+            .Select(x => (SalesOrderStatus?)x.Status).SingleOrDefaultAsync(cancellationToken);
         if (status is null) return NotFound();
-        if (status != "Delivering" && status != "Completed")
+        if (status != SalesOrderStatus.Delivering && status != SalesOrderStatus.Completed)
             return Conflict("Only delivering sales orders can be completed.");
         try { await context.Database.ExecuteSqlInterpolatedAsync($"EXEC dbo.usp_CompleteSalesOrder @SalesOrderId={id}", cancellationToken); }
         catch (SqlException ex) when (ex.Number == 51101) { return NotFound(); }
@@ -143,28 +132,23 @@ public sealed class SalesService(AppDbContext context) : ISalesService
         if (!await context.SalesOrders.AnyAsync(x => x.SalesOrderId == id, cancellationToken)) return NotFound();
         if (!await context.SalesOrderItems.AnyAsync(x => x.SalesOrderId == id, cancellationToken))
             return Conflict("Sales order has no items.");
-        foreach (var item in await context.SalesOrderItems.Where(x => x.SalesOrderId == id).ToListAsync(cancellationToken))
-        {
-            var error = await CheckStockAsync(id, item.ProductId, item.Quantity, cancellationToken);
-            if (error is not null) return error;
-        }
-        return await ChangeStatusAsync(id, "Draft", "Pending", cancellationToken);
+        return await ChangeStatusAsync(id, SalesOrderStatus.Draft, SalesOrderStatus.Pending, cancellationToken);
     }
 
     public Task<ServiceResult<SalesResponse>> DispatchAsync(long id, CancellationToken cancellationToken) =>
-        ChangeStatusAsync(id, "Pending", "Delivering", cancellationToken);
+        ChangeStatusAsync(id, SalesOrderStatus.Pending, SalesOrderStatus.Delivering, cancellationToken);
 
     public async Task<ServiceResult<SalesResponse>> CancelAsync(long id, CancellationToken cancellationToken)
     {
         var status = await context.SalesOrders.AsNoTracking().Where(x => x.SalesOrderId == id)
-            .Select(x => x.Status).SingleOrDefaultAsync(cancellationToken);
+            .Select(x => (SalesOrderStatus?)x.Status).SingleOrDefaultAsync(cancellationToken);
         if (status is null) return NotFound();
-        if (status == "Cancelled") return await GetByIdAsync(id, cancellationToken);
-        if (status == "Completed") return Conflict("Completed sales orders cannot be cancelled.");
-        return await ChangeStatusAsync(id, status, "Cancelled", cancellationToken);
+        if (status == SalesOrderStatus.Cancelled) return await GetByIdAsync(id, cancellationToken);
+        if (status == SalesOrderStatus.Completed) return Conflict("Completed sales orders cannot be cancelled.");
+        return await ChangeStatusAsync(id, status.Value, SalesOrderStatus.Cancelled, cancellationToken);
     }
 
-    private async Task<ServiceResult<SalesResponse>> ChangeStatusAsync(long id, string expected, string next, CancellationToken cancellationToken)
+    private async Task<ServiceResult<SalesResponse>> ChangeStatusAsync(long id, SalesOrderStatus expected, SalesOrderStatus next, CancellationToken cancellationToken)
     {
         try
         {
@@ -182,7 +166,7 @@ public sealed class SalesService(AppDbContext context) : ISalesService
     {
         var order = await context.SalesOrders.Include(x => x.Items).SingleOrDefaultAsync(x => x.SalesOrderId == id, cancellationToken);
         if (order is null) return ServiceResult<bool>.Failure(ServiceErrorType.NotFound, "Sales order was not found.");
-        if (order.Status != "Draft") return ServiceResult<bool>.Failure(ServiceErrorType.Conflict, "Only draft sales orders can be deleted.");
+        if (order.Status != SalesOrderStatus.Draft) return ServiceResult<bool>.Failure(ServiceErrorType.Conflict, "Only draft sales orders can be deleted.");
         context.SalesOrderItems.RemoveRange(order.Items);
         context.SalesOrders.Remove(order);
         try { await context.SaveChangesAsync(cancellationToken); }
@@ -202,21 +186,14 @@ public sealed class SalesService(AppDbContext context) : ISalesService
 
     private async Task<ServiceResult<SalesResponse>?> CheckDraftAndProductAsync(long id, int productId, CancellationToken cancellationToken)
     {
-        var status = await context.SalesOrders.AsNoTracking().Where(x => x.SalesOrderId == id).Select(x => x.Status).SingleOrDefaultAsync(cancellationToken);
+        var status = await context.SalesOrders.AsNoTracking().Where(x => x.SalesOrderId == id).Select(x => (SalesOrderStatus?)x.Status).SingleOrDefaultAsync(cancellationToken);
         if (status is null) return NotFound();
-        if (status != "Draft") return Conflict("Only draft sales orders can be edited.");
+        if (status != SalesOrderStatus.Draft) return Conflict("Only draft sales orders can be edited.");
         if (!await context.Products.AnyAsync(x => x.ProductId == productId && x.IsActive, cancellationToken))
             return ServiceResult<SalesResponse>.Failure(ServiceErrorType.Validation, "Active product is required.", nameof(SalesItemRequest.ProductId));
         return null;
     }
 
-    private async Task<ServiceResult<SalesResponse>?> CheckStockAsync(long id, int productId, int quantity, CancellationToken cancellationToken)
-    {
-        var warehouseId = await context.SalesOrders.Where(x => x.SalesOrderId == id).Select(x => x.WarehouseId).SingleAsync(cancellationToken);
-        var stock = await context.InventoryTransactions.Where(x => x.WarehouseId == warehouseId && x.ProductId == productId)
-            .SumAsync(x => (long?)x.Quantity, cancellationToken) ?? 0;
-        return quantity > stock ? Conflict($"Insufficient stock in warehouse. Product {productId}: available {stock}, requested {quantity}.") : null;
-    }
 
     private async Task<SalesResponse?> ReadAsync(long id, CancellationToken cancellationToken)
     {
@@ -260,7 +237,7 @@ public sealed class SalesService(AppDbContext context) : ISalesService
 
     private static ServiceResult<SalesResponse> DatabaseError(DbUpdateException ex)
     {
-        if (ex.InnerException is SqlException sql)
+        if (ex.GetBaseException() is SqlException sql)
         {
             if (sql.Number is 2601 or 2627) return Conflict("Sales order number or product already exists in this order.");
             if (sql.Number is >= 51202 and <= 51204) return Conflict("Sales order changed concurrently.");

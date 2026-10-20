@@ -8,6 +8,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SalesForecastSystem.Infrastructure.Data;
 using SalesForecastSystem.Infrastructure.Entities;
+using SalesForecastSystem.Core.Enums;
 
 var connection = Environment.GetEnvironmentVariable("TEST_SQL_CONNECTION") ?? throw new Exception("Run through RunDisposableIntegration.ps1 -ExcelOnly.");
 if (!new SqlConnectionStringBuilder(connection).InitialCatalog.StartsWith("SalesForecastTest_", StringComparison.Ordinal)) throw new Exception("Only disposable databases are allowed.");
@@ -74,7 +75,7 @@ try
     foreach (var role in new[] { "Admin", "WarehouseManager", "SalesStaff" })
     {
         var roleId = await db.Roles.Where(r => r.Name == role).Select(r => r.RoleId).SingleAsync();
-        db.Users.Add(new User { RoleId = roleId, FullName = "Excel " + role, Email = role.ToLowerInvariant() + "@excel.test", PasswordHash = BCrypt.Net.BCrypt.HashPassword(password), Status = "Active", CreatedAt = DateTime.UtcNow });
+        db.Users.Add(new User { RoleId = roleId, FullName = "Excel " + role, Email = role.ToLowerInvariant() + "@excel.test", PasswordHash = BCrypt.Net.BCrypt.HashPassword(password), Status = UserStatus.Active, CreatedAt = DateTime.UtcNow });
     }
     var category = new Category { Code = "DM-EXCEL", Name = "Excel Leaf", IsActive = true };
     var warehouse = new Warehouse { Name = "Excel Warehouse", IsActive = true };
@@ -163,7 +164,7 @@ try
     Assert(orderResult.GetProperty("createdCount").GetInt32() == 1 && orderResult.GetProperty("totalRows").GetInt32() == 2, "grouped one order two lines");
     var orderId = orderResult.GetProperty("createdIds")[0].GetInt64();
     var order = await db.SalesOrders.AsNoTracking().Include(o => o.Items).SingleAsync(o => o.SalesOrderId == orderId);
-    Assert(order.Status == "Draft" && order.Items.Count == 2 && order.CustomerPhone == "0901234567", "draft, phone and both details persisted");
+    Assert(order.Status == SalesOrderStatus.Draft && order.Items.Count == 2 && order.CustomerPhone == "0901234567", "draft, phone and both details persisted");
     Assert(order.Items.Sum(i => i.LineTotal) == 398m, "exact discount amount");
     Assert(await db.InventoryTransactions.SumAsync(t => (long)t.Quantity) == stockBefore, "import draft changes no inventory");
     Assert(await db.Customers.CountAsync() == customerCount + 1, "one new customer reused for every row");
@@ -262,7 +263,7 @@ try
     var otherTotals = (await Json("GET", $"/api/reports/profit?warehouseId={otherWarehouse.WarehouseId}", "Admin", 200)).GetProperty("totals");
     Assert(otherTotals.GetProperty("costOfGoodsSold").GetDecimal() == 900 && otherTotals.GetProperty("grossProfit").GetDecimal() == 99, "FIFO lots are isolated by warehouse");
     // Historical completed sale without cost ledger must be explicit, not assumed free stock.
-    db.SalesOrders.Add(new SalesOrder { OrderNumber = "NO-COST", OrderDate = new DateTime(2026, 10, 6), WarehouseId = warehouse.WarehouseId, CreatedByUserId = adminId, Status = "Draft", Items = [new SalesOrderItem { ProductId = productId, Quantity = 1, UnitPrice = 100 }] });
+    db.SalesOrders.Add(new SalesOrder { OrderNumber = "NO-COST", OrderDate = new DateTime(2026, 10, 6), WarehouseId = warehouse.WarehouseId, CreatedByUserId = adminId, Status = SalesOrderStatus.Draft, Items = [new SalesOrderItem { ProductId = productId, Quantity = 1, UnitPrice = 100 }] });
     await db.SaveChangesAsync();
     await db.Database.ExecuteSqlRawAsync("UPDATE dbo.SalesOrders SET Status='Completed', CompletedAt=SYSUTCDATETIME() WHERE OrderNumber='NO-COST'");
     var missingCost = (await Json("GET", "/api/reports/profit?fromDate=2026-10-06", "Admin", 200)).GetProperty("totals");

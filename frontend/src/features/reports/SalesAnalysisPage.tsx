@@ -18,7 +18,8 @@ export function SalesAnalysisPage() {
   const [topQuery, setTopQuery] = useState(`FromDate=${from}&ToDate=${to}&Top=10`);
   const [staffQuery, setStaffQuery] = useState(`FromDate=${from}&ToDate=${to}&Top=100`);
   const [groupName, setGroupName] = useState("Nhóm bán hàng");
-  const [staffIds, setStaffIds] = useState("");
+  const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([]);
+  const [staffSearch, setStaffSearch] = useState("");
   const [groupQuery, setGroupQuery] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -43,8 +44,8 @@ export function SalesAnalysisPage() {
   function applyGroup() {
     setError("");
     if (!groupName.trim() || groupName.trim().length > 100) { setError("Tên nhóm bắt buộc và tối đa 100 ký tự."); return; }
-    const ids = [...new Set(staffIds.split(/[\s,;]+/).filter(Boolean))];
-    if (!ids.length || ids.length > 100 || ids.some(id => !/^[1-9]\d*$/.test(id) || Number(id) > 2147483647)) { setError("Nhập 1–100 mã nhân viên nguyên dương, cách nhau bằng dấu phẩy."); return; }
+    const ids = [...new Set(selectedStaffIds)];
+    if (!ids.length || ids.length > 100) { setError("Chọn từ 1 đến 100 nhân viên để phân tích nhóm."); return; }
     const query = new URLSearchParams(filterQuery);
     query.set("GroupName", groupName.trim()); ids.forEach(id => query.append("StaffUserIds", id));
     setGroupQuery(query.toString());
@@ -69,8 +70,15 @@ export function SalesAnalysisPage() {
       </section>
     </div>
     <section className="card report-card analysis-group-card"><header className="report-card-heading"><div><h3>Phân tích doanh số theo nhóm nhân viên</h3><p>So sánh doanh thu của nhóm nhân viên được chọn.</p></div></header>
-      <form className="analysis-group-form" onSubmit={e => { e.preventDefault(); applyGroup(); }}><div><label className="form-label" htmlFor="analysis-group-name">Tên nhóm</label><input id="analysis-group-name" className="form-control" required maxLength={100} value={groupName} onChange={e => setGroupName(e.target.value)} /></div><div><label className="form-label" htmlFor="analysis-staff-ids">Mã nhân viên, cách nhau bằng dấu phẩy</label><input id="analysis-staff-ids" className="form-control" required value={staffIds} onChange={e => setStaffIds(e.target.value)} placeholder="Ví dụ: 1, 2, 3" /></div>
-        {staffDirectory.data && <details className="analysis-directory"><summary>Tra cứu mã nhân viên có doanh số</summary><ul>{staffDirectory.data.map(s => <li key={s.userId}>{s.userId} · {s.fullName}</li>)}</ul></details>}<button className="btn btn-primary align-self-start" disabled={group.isFetching}>Xem doanh số nhóm</button>
+      <form className="analysis-group-form" onSubmit={e => { e.preventDefault(); applyGroup(); }}><div><label className="form-label" htmlFor="analysis-group-name">Tên nhóm</label><input id="analysis-group-name" className="form-control" required maxLength={100} value={groupName} onChange={e => setGroupName(e.target.value)} /></div>
+        <div className="analysis-staff-picker"><span className="form-label">Nhân viên trong nhóm</span><details className="analysis-directory"><summary>{selectedStaffIds.length ? `Đã chọn ${selectedStaffIds.length} nhân viên` : "Chọn nhân viên theo tên"}</summary>
+          {staffDirectory.isFetching ? <p role="status">Đang tải danh sách nhân viên...</p> : staffDirectory.error ? <p className="text-danger" role="alert">{staffDirectory.error.message}</p> : <>
+            <label className="visually-hidden" htmlFor="analysis-staff-search">Tìm nhân viên</label><input id="analysis-staff-search" className="form-control form-control-sm" type="search" placeholder="Tìm theo tên" value={staffSearch} onChange={e => setStaffSearch(e.target.value)} />
+            <div className="analysis-staff-options">{(staffDirectory.data ?? []).filter(s => s.fullName.toLocaleLowerCase("vi").includes(staffSearch.trim().toLocaleLowerCase("vi"))).map(s => <label className="analysis-staff-option" key={s.userId}><input type="checkbox" checked={selectedStaffIds.includes(String(s.userId))} onChange={e => setSelectedStaffIds(current => e.target.checked ? [...current, String(s.userId)] : current.filter(id => id !== String(s.userId)))} /><span>{s.fullName}</span></label>)}
+              {!staffDirectory.data?.length && <p className="text-secondary mb-0">Chưa có nhân viên ghi nhận doanh số.</p>}
+            </div>
+          </>}
+        </details></div><button className="btn btn-primary align-self-start" disabled={group.isFetching}>Xem doanh số nhóm</button>
       </form>
       {groupQuery && (group.isFetching ? <p role="status">Đang tải doanh số nhóm...</p> : group.error ? <div className="alert alert-danger mt-3" role="alert">{group.error.message}</div> : group.data && <div className="analysis-group-result"><h4>{group.data.groupName}</h4><p>{group.data.orderCount} đơn · {group.data.quantitySold} sản phẩm · {money(group.data.revenue)}</p><div className="table-responsive"><table className="table report-ranking-table"><thead><tr><th>Nhân viên</th><th>Đơn</th><th>Số lượng bán</th><th>Doanh thu</th></tr></thead><tbody>{group.data.members.map(s => <tr key={s.userId}><td>{s.fullName} ({s.userId})</td><td>{s.orderCount}</td><td>{s.quantitySold}</td><td>{money(s.revenue)}</td></tr>)}</tbody></table></div></div>)}
     </section>

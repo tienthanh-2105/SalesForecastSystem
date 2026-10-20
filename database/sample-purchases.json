@@ -1,0 +1,303 @@
+{
+  "metadata": {
+    "name": "Bộ dữ liệu mẫu phiếu nhập hàng (Purchase Orders) - Sales Forecast System",
+    "version": "1.0",
+    "date": "2026-10-18",
+    "testOnly": true,
+    "currency": "VND",
+    "description": "Dữ liệu mẫu nhập kho bao gồm nhà cung cấp, đợt nhập đầu kỳ (Opening Stock), đợt nhập bổ sung (Restock), phiếu nháp (Draft) và phiếu hủy (Cancelled) để phục vụ kiểm thử luồng quản lý nhập hàng, tính toán tồn kho và dự báo nhu cầu bán hàng."
+  },
+  "suppliers": [
+    {
+      "ref": "ncc_fpt",
+      "request": {
+        "name": "Công ty Cổ phần Bán lẻ Kỹ thuật số FPT (Synnex FPT)",
+        "taxCode": "0101258670",
+        "phoneNumber": "02473006666",
+        "email": "contact@synnexfpt.com.vn",
+        "address": "Tòa nhà FPT Cầu Giấy, Phố Duy Tân, Cầu Giấy, Hà Nội",
+        "isActive": true
+      }
+    },
+    {
+      "ref": "ncc_digiworld",
+      "request": {
+        "name": "Công ty Cổ phần Thế Giới Số (Digiworld Corporation)",
+        "taxCode": "0302888749",
+        "phoneNumber": "02839290059",
+        "email": "info@digiworld.com.vn",
+        "address": "Tầng 8, Tòa nhà Nam Á, 201-203 Cách Mạng Tháng Tám, Quận 3, TP. Hồ Chí Minh",
+        "isActive": true
+      }
+    },
+    {
+      "ref": "ncc_petrosetco",
+      "request": {
+        "name": "Công ty CP Dịch vụ Phân phối Tổng hợp Dầu khí (PSD)",
+        "taxCode": "0304998695",
+        "phoneNumber": "02839115578",
+        "email": "psd@petrosetco.com.vn",
+        "address": "Lầu 6, PetroVietnam Tower, 1-5 Lê Duẩn, Quận 1, TP. Hồ Chí Minh",
+        "isActive": true
+      }
+    },
+    {
+      "ref": "ncc_vienson",
+      "request": {
+        "name": "Công ty TNHH MTV Công Nghệ Tin Học Viễn Sơn",
+        "taxCode": "0301389824",
+        "phoneNumber": "02838326085",
+        "email": "info@microstar.vn",
+        "address": "162 Bùi Thị Xuân, Phường Phạm Ngũ Lão, Quận 1, TP. Hồ Chí Minh",
+        "isActive": true
+      }
+    }
+  ],
+  "purchaseOrders": [
+    {
+      "orderNumber": "PO-20261001-HCM01",
+      "warehouseRef": "warehouse_hcm",
+      "supplierRef": "ncc_fpt",
+      "createdByEmail": "warehouse.demo@example.com",
+      "orderDate": "2026-10-01",
+      "targetStatus": "Posted",
+      "notes": "Nhập kho đợt 1 - Điện thoại Apple chính hãng cho kho TP. Hồ Chí Minh",
+      "items": [
+        {
+          "sku": "TGDD-PHN-IP17-256",
+          "productName": "iPhone 17 256GB",
+          "quantity": 25,
+          "unitPrice": 20500000,
+          "lineTotal": 512500000
+        },
+        {
+          "sku": "TGDD-PHN-IP15-128",
+          "productName": "iPhone 15 128GB",
+          "quantity": 20,
+          "unitPrice": 16200000,
+          "lineTotal": 324000000
+        },
+        {
+          "sku": "XLA-IP17-256",
+          "productName": "iPhone 17 256GB (Bản Demo XLA)",
+          "quantity": 10,
+          "unitPrice": 22800000,
+          "lineTotal": 228000000
+        }
+      ],
+      "expectedTotalAmount": 1064500000,
+      "transitions": ["post"]
+    },
+    {
+      "orderNumber": "PO-20261002-HCM02",
+      "warehouseRef": "warehouse_hcm",
+      "supplierRef": "ncc_digiworld",
+      "createdByEmail": "warehouse.demo@example.com",
+      "orderDate": "2026-10-02",
+      "targetStatus": "Posted",
+      "notes": "Nhập đợt 1 - Dòng máy tính xách tay HP và Lenovo cho kho TP. Hồ Chí Minh",
+      "items": [
+        {
+          "sku": "TGDD-LAP-HP245G10",
+          "productName": "HP 245 G10 R5 7530U (B8PF9AT) 8GB/512GB",
+          "quantity": 15,
+          "unitPrice": 16000000,
+          "lineTotal": 240000000
+        },
+        {
+          "sku": "TGDD-LAP-LNV-IP3-15ARP10",
+          "productName": "Lenovo IdeaPad Slim 3 15ARP10 R5 7535HS 16GB/512GB",
+          "quantity": 12,
+          "unitPrice": 18000000,
+          "lineTotal": 216000000
+        },
+        {
+          "sku": "LAP-HP14AMD",
+          "productName": "HP Laptop 14 (AMD Demo)",
+          "quantity": 10,
+          "unitPrice": 10500000,
+          "lineTotal": 105000000
+        }
+      ],
+      "expectedTotalAmount": 561000000,
+      "transitions": ["post"]
+    },
+    {
+      "orderNumber": "PO-20261003-HN01",
+      "warehouseRef": "warehouse_hanoi",
+      "supplierRef": "ncc_fpt",
+      "createdByEmail": "warehouse.demo@example.com",
+      "orderDate": "2026-10-03",
+      "targetStatus": "Posted",
+      "notes": "Nhập hàng đầu kỳ cho kho Hà Nội: Điện thoại và laptop",
+      "items": [
+        {
+          "sku": "TGDD-PHN-IP17-256",
+          "productName": "iPhone 17 256GB",
+          "quantity": 20,
+          "unitPrice": 20500000,
+          "lineTotal": 410000000
+        },
+        {
+          "sku": "TGDD-LAP-HP245G10",
+          "productName": "HP 245 G10 R5 7530U (B8PF9AT) 8GB/512GB",
+          "quantity": 10,
+          "unitPrice": 16000000,
+          "lineTotal": 160000000
+        },
+        {
+          "sku": "TGDD-LAP-LNV-IP3-15ARP10",
+          "productName": "Lenovo IdeaPad Slim 3 15ARP10 R5 7535HS 16GB/512GB",
+          "quantity": 8,
+          "unitPrice": 18000000,
+          "lineTotal": 144000000
+        }
+      ],
+      "expectedTotalAmount": 714000000,
+      "transitions": ["post"]
+    },
+    {
+      "orderNumber": "PO-20261005-HCM03",
+      "warehouseRef": "warehouse_hcm",
+      "supplierRef": "ncc_petrosetco",
+      "createdByEmail": "warehouse.demo@example.com",
+      "orderDate": "2026-10-05",
+      "targetStatus": "Posted",
+      "notes": "Nhập kho phụ kiện sạc và ốp lưng chính hãng cho kho TP. Hồ Chí Minh",
+      "items": [
+        {
+          "sku": "TGDD-PWB-XM-JP313",
+          "productName": "Pin sạc dự phòng Xmobile JP313 20000mAh 30W",
+          "quantity": 40,
+          "unitPrice": 450000,
+          "lineTotal": 18000000
+        },
+        {
+          "sku": "TGDD-PWB-XM-JP365",
+          "productName": "Pin sạc dự phòng Xmobile TFT JP365 20000mAh 165W",
+          "quantity": 30,
+          "unitPrice": 850000,
+          "lineTotal": 25500000
+        },
+        {
+          "sku": "TGDD-CAB-BAS-CB000135",
+          "productName": "Cáp sạc nhanh Baseus Titanium Alloy CB000135 1m",
+          "quantity": 60,
+          "unitPrice": 120000,
+          "lineTotal": 7200000
+        },
+        {
+          "sku": "TGDD-CAB-ANK-A8060",
+          "productName": "Cáp sạc nhanh và truyền dữ liệu Anker Zolo A8060 1.8m",
+          "quantity": 50,
+          "unitPrice": 110000,
+          "lineTotal": 5500000
+        },
+        {
+          "sku": "TGDD-PCS-APL-IP17P-TW",
+          "productName": "Ốp lưng MagSafe iPhone 17 Pro TechWoven Apple",
+          "quantity": 30,
+          "unitPrice": 950000,
+          "lineTotal": 28500000
+        }
+      ],
+      "expectedTotalAmount": 847000000,
+      "transitions": ["post"]
+    },
+    {
+      "orderNumber": "PO-20261006-HN02",
+      "warehouseRef": "warehouse_hanoi",
+      "supplierRef": "ncc_vienson",
+      "createdByEmail": "warehouse.demo@example.com",
+      "orderDate": "2026-10-06",
+      "targetStatus": "Posted",
+      "notes": "Nhập thiết bị ngoại vi và tai nghe cho kho Hà Nội",
+      "items": [
+        {
+          "sku": "TGDD-MOU-LOG-M170",
+          "productName": "Chuột không dây Logitech M170",
+          "quantity": 50,
+          "unitPrice": 135000,
+          "lineTotal": 6750000
+        },
+        {
+          "sku": "TGDD-KEY-LOG-K120",
+          "productName": "Bàn phím có dây Logitech K120",
+          "quantity": 40,
+          "unitPrice": 115000,
+          "lineTotal": 4600000
+        },
+        {
+          "sku": "TGDD-KEY-LOG-MK250",
+          "productName": "Bộ bàn phím chuột Bluetooth Logitech MK250",
+          "quantity": 30,
+          "unitPrice": 420000,
+          "lineTotal": 12600000
+        },
+        {
+          "sku": "TGDD-HBT-SON-WFC510",
+          "productName": "Tai nghe Bluetooth True Wireless Sony WF-C510",
+          "quantity": 35,
+          "unitPrice": 550000,
+          "lineTotal": 19250000
+        }
+      ],
+      "expectedTotalAmount": 43200000,
+      "transitions": ["post"]
+    },
+    {
+      "orderNumber": "PO-20261015-HCM04",
+      "warehouseRef": "warehouse_hcm",
+      "supplierRef": "ncc_fpt",
+      "createdByEmail": "warehouse.demo@example.com",
+      "orderDate": "2026-10-15",
+      "targetStatus": "Draft",
+      "notes": "Phiếu nháp: Nhập bổ sung đợt giữa tháng 10, đang chờ kiểm đếm hàng thực tế tại cửa kho",
+      "items": [
+        {
+          "sku": "TGDD-PHN-IP17-256",
+          "productName": "iPhone 17 256GB",
+          "quantity": 15,
+          "unitPrice": 20400000,
+          "lineTotal": 306000000
+        },
+        {
+          "sku": "TGDD-PWB-XM-JP365",
+          "productName": "Pin sạc dự phòng Xmobile TFT JP365 20000mAh 165W",
+          "quantity": 20,
+          "unitPrice": 840000,
+          "lineTotal": 16800000
+        },
+        {
+          "sku": "TGDD-CAB-ANK-A8060",
+          "productName": "Cáp sạc nhanh và truyền dữ liệu Anker Zolo A8060 1.8m",
+          "quantity": 30,
+          "unitPrice": 105000,
+          "lineTotal": 3150000
+        }
+      ],
+      "expectedTotalAmount": 325950000,
+      "transitions": []
+    },
+    {
+      "orderNumber": "PO-20261016-HN03",
+      "warehouseRef": "warehouse_hanoi",
+      "supplierRef": "ncc_digiworld",
+      "createdByEmail": "warehouse.demo@example.com",
+      "orderDate": "2026-10-16",
+      "targetStatus": "Cancelled",
+      "notes": "Phiếu hủy: Nhà cung cấp báo đứt hàng model Lenovo IdeaPad, kho đã hủy phiếu",
+      "items": [
+        {
+          "sku": "TGDD-LAP-LNV-IP3-15ARP10",
+          "productName": "Lenovo IdeaPad Slim 3 15ARP10 R5 7535HS 16GB/512GB",
+          "quantity": 10,
+          "unitPrice": 17900000,
+          "lineTotal": 179000000
+        }
+      ],
+      "expectedTotalAmount": 179000000,
+      "transitions": ["cancel"]
+    }
+  ]
+}

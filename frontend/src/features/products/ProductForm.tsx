@@ -35,7 +35,7 @@ export function ProductForm({
     enabled: !entity,
     staleTime: 0,
   });
-  const units = Array.from(new Set(["Cái", "Chiếc", "Bộ", "Hộp", "Máy", ...(entity?.unit ? [entity.unit] : [])]));
+  const units = Array.from(new Set(["Cái", "Chiếc", "Bộ", "Hộp", "Máy", "Miếng", "Dây", ...(entity?.unit ? [entity.unit] : [])]));
   const { data: stock } = useQuery({
     queryKey: ["stock", entity?.productId],
     queryFn: () =>

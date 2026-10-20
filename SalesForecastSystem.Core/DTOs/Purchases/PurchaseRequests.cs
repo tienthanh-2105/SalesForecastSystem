@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SalesForecastSystem.Core.Enums;
 
 namespace SalesForecastSystem.Core.DTOs.Purchases;
 
@@ -10,10 +11,12 @@ public sealed class PurchaseQueryRequest : IValidatableObject
     [Range(1, int.MaxValue)] public int? SupplierId { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
-    [RegularExpression("Draft|Posted|Cancelled")] public string? Status { get; set; }
+    public PurchaseOrderStatus? Status { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext context)
     {
+        if (Status.HasValue && !Enum.IsDefined(Status.Value))
+            yield return new ValidationResult("Status is invalid.", [nameof(Status)]);
         if (FromDate.HasValue && ToDate.HasValue && FromDate > ToDate)
             yield return new ValidationResult("FromDate cannot be later than ToDate.", [nameof(FromDate), nameof(ToDate)]);
     }

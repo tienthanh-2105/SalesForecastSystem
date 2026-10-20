@@ -11,6 +11,7 @@ public enum ProductStockStatus
 
 public enum ProductSortBy
 {
+    ProductId,
     Name,
     SKU,
     SalePrice,
@@ -34,7 +35,7 @@ public sealed class ProductQueryRequest : IValidatableObject
 
     public bool? IsActive { get; set; }
     public ProductStockStatus? StockStatus { get; set; }
-    public ProductSortBy SortBy { get; set; } = ProductSortBy.Name;
+    public ProductSortBy SortBy { get; set; } = ProductSortBy.ProductId;
     public SortDirection SortDirection { get; set; } = SortDirection.Asc;
 
     [Range(1, int.MaxValue, ErrorMessage = "Page must be at least 1.")]

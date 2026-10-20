@@ -49,13 +49,15 @@ export const roleLabels: Record<Role, string> = {
   WarehouseManager: "Quản lý kho",
   SalesStaff: "Nhân viên bán hàng",
 };
-export const allowed = (role: Role, section: string) =>
-  section === "reports" || role === "Admin" ||
-  (role === "WarehouseManager" && ["warehouses", "purchases"].includes(section)) ||
-  (role === "SalesStaff" && ["orders", "customers"].includes(section));
+export const allowed = (role: Role, section: string) => {
+  if (role === "Admin") return true;
+  if (role === "WarehouseManager") return section === "products" || section === "reports";
+  if (role === "SalesStaff") return section === "orders" || section === "customers" || section === "reports";
+  return false;
+};
 export const home = (role: Role) =>
   role === "Admin"
     ? "/categories"
     : role === "WarehouseManager"
-      ? "/warehouses"
+      ? "/products"
       : "/orders";

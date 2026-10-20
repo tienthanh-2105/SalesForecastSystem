@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SalesForecastSystem.Core.Common;
 using SalesForecastSystem.Core.DTOs.Forecasting;
+using SalesForecastSystem.Core.Enums;
 using SalesForecastSystem.Core.Interfaces.Services;
 using SalesForecastSystem.Infrastructure.Data;
 
@@ -37,7 +38,7 @@ public sealed class ForecastDataService(AppDbContext context) : IForecastDataSer
             from order in context.SalesOrders.AsNoTracking()
             join item in context.SalesOrderItems.AsNoTracking()
                 on order.SalesOrderId equals item.SalesOrderId
-            where order.Status == "Completed" &&
+            where order.Status == SalesOrderStatus.Completed &&
                   item.ProductId == productId &&
                   order.OrderDate >= fromDate &&
                   order.OrderDate <= toDate &&

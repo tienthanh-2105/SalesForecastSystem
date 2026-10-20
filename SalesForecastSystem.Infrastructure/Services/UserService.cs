@@ -2,6 +2,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SalesForecastSystem.Core.Common;
 using SalesForecastSystem.Core.DTOs.Users;
+using SalesForecastSystem.Core.Enums;
 using SalesForecastSystem.Core.Helpers;
 using SalesForecastSystem.Core.Interfaces.Services;
 using SalesForecastSystem.Infrastructure.Data;
@@ -52,11 +53,7 @@ public sealed class UserService(AppDbContext context) : IUserService
             query = query.Where(user => user.Role.Name == role);
         }
 
-        var status = NormalizeKnownValue(request.Status, UserStatusValues.Values);
-        if (status is not null)
-        {
-            query = query.Where(user => user.Status == status);
-        }
+        if (request.Status.HasValue) query = query.Where(user => user.Status == request.Status.Value);
 
         var totalItems = await query.CountAsync(cancellationToken);
         var skip = ((long)request.Page - 1) * request.PageSize;
@@ -128,7 +125,7 @@ public sealed class UserService(AppDbContext context) : IUserService
             Email = email,
             PhoneNumber = NormalizeOptional(request.PhoneNumber),
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            Status = UserStatuses.Active,
+            Status = UserStatus.Active,
             CreatedAt = DateTime.UtcNow
         };
         context.Users.Add(user);
@@ -212,8 +209,8 @@ public sealed class UserService(AppDbContext context) : IUserService
             return NotFound();
         }
 
-        var status = NormalizeKnownValue(request.Status, UserStatusValues.Values)!;
-        if (id == currentUserId && status == UserStatuses.Locked)
+        var status = request.Status!.Value;
+        if (id == currentUserId && status == UserStatus.Locked)
         {
             return ServiceResult<UserResponse>.Failure(
                 ServiceErrorType.Validation,
@@ -236,7 +233,7 @@ public sealed class UserService(AppDbContext context) : IUserService
             return saveError;
         }
 
-        if (status == UserStatuses.Locked)
+        if (status == UserStatus.Locked)
         {
             await RevokeSessionsAsync(id, cancellationToken);
         }
@@ -305,11 +302,11 @@ public sealed class UserService(AppDbContext context) : IUserService
         {
             await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 or 2627 })
+        catch (DbUpdateException exception) when (exception.GetBaseException() is SqlException { Number: 2601 or 2627 })
         {
             return DuplicateEmail();
         }
-        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 547 })
+        catch (DbUpdateException exception) when (exception.GetBaseException() is SqlException { Number: 547 })
         {
             return ServiceResult<UserResponse>.Failure(
                 ServiceErrorType.Conflict,

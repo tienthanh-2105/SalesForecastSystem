@@ -2,6 +2,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SalesForecastSystem.Core.Common;
 using SalesForecastSystem.Core.DTOs.Products;
+using SalesForecastSystem.Core.Enums;
 using SalesForecastSystem.Core.Interfaces.Services;
 using SalesForecastSystem.Infrastructure.Data;
 using SalesForecastSystem.Infrastructure.Entities;
@@ -139,7 +140,24 @@ public sealed class ProductService(AppDbContext context) : IProductService
             ? await context.Database.SqlQuery<long>($"SELECT COALESCE(SUM(CONVERT(bigint, Quantity)), CONVERT(bigint, 0)) AS [Value] FROM dbo.InventoryTransactions WHERE ProductId = {id} AND WarehouseId = {warehouseId.Value}").SingleAsync(cancellationToken)
             : await context.Database.SqlQuery<long>($"SELECT COALESCE(SUM(CONVERT(bigint, Quantity)), CONVERT(bigint, 0)) AS [Value] FROM dbo.InventoryTransactions WHERE ProductId = {id}").SingleAsync(cancellationToken);
 
-        return ServiceResult<ProductStockResponse>.Success(new ProductStockResponse(id, quantityOnHand));
+        var reservedQuery = from o in context.SalesOrders.AsNoTracking()
+                            join i in context.SalesOrderItems.AsNoTracking() on o.SalesOrderId equals i.SalesOrderId
+                            where (o.Status == SalesOrderStatus.Pending || o.Status == SalesOrderStatus.Delivering)
+                                  && i.ProductId == id
+                            select (long)i.Quantity;
+        if (warehouseId.HasValue)
+        {
+            reservedQuery = from o in context.SalesOrders.AsNoTracking()
+                            join i in context.SalesOrderItems.AsNoTracking() on o.SalesOrderId equals i.SalesOrderId
+                            where o.WarehouseId == warehouseId.Value
+                                  && (o.Status == SalesOrderStatus.Pending || o.Status == SalesOrderStatus.Delivering)
+                                  && i.ProductId == id
+                            select (long)i.Quantity;
+        }
+        var reservedQuantity = await reservedQuery.SumAsync(cancellationToken);
+        var availableQuantity = Math.Max(0, quantityOnHand - reservedQuantity);
+
+        return ServiceResult<ProductStockResponse>.Success(new ProductStockResponse(id, quantityOnHand, reservedQuantity, availableQuantity));
     }
 
     public async Task<ServiceResult<ProductResponse>> CreateAsync(
@@ -284,11 +302,11 @@ public sealed class ProductService(AppDbContext context) : IProductService
                 ServiceErrorType.Conflict,
                 "Product was changed or deleted. Reload and try again.");
         }
-        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 or 2627 })
+        catch (DbUpdateException exception) when (exception.GetBaseException() is SqlException { Number: 2601 or 2627 })
         {
             return Duplicate();
         }
-        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 547 })
+        catch (DbUpdateException exception) when (exception.GetBaseException() is SqlException { Number: 547 })
         {
             return ServiceResult<ProductResponse>.Failure(
                 ServiceErrorType.Conflict,
@@ -338,6 +356,13 @@ public sealed class ProductService(AppDbContext context) : IProductService
     {
         return (sortBy, direction) switch
         {
+            (ProductSortBy.ProductId, SortDirection.Asc) => query
+                .OrderBy(product => product.ProductId),
+            (ProductSortBy.ProductId, SortDirection.Desc) => query
+                .OrderByDescending(product => product.ProductId),
+            (ProductSortBy.Name, SortDirection.Asc) => query
+                .OrderBy(product => product.Name)
+                .ThenBy(product => product.ProductId),
             (ProductSortBy.Name, SortDirection.Desc) => query
                 .OrderByDescending(product => product.Name)
                 .ThenBy(product => product.ProductId),
@@ -366,8 +391,7 @@ public sealed class ProductService(AppDbContext context) : IProductService
                 .OrderByDescending(product => product.QuantityOnHand)
                 .ThenBy(product => product.ProductId),
             _ => query
-                .OrderBy(product => product.Name)
-                .ThenBy(product => product.ProductId)
+                .OrderBy(product => product.ProductId)
         };
     }
 

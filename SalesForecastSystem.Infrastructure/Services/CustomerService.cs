@@ -80,7 +80,7 @@ public sealed class CustomerService(AppDbContext context) : ICustomerService
     {
         try { await context.SaveChangesAsync(cancellationToken); }
         catch (DbUpdateConcurrencyException) { return NotFound(); }
-        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 or 2627 })
+        catch (DbUpdateException exception) when (exception.GetBaseException() is SqlException { Number: 2601 or 2627 })
         { return ServiceResult<CustomerResponse>.Failure(ServiceErrorType.Conflict, "Customer email already exists."); }
         return null;
     }

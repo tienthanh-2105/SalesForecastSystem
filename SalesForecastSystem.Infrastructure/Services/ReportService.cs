@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SalesForecastSystem.Core.Common;
 using SalesForecastSystem.Core.DTOs.Reports;
+using SalesForecastSystem.Core.Enums;
 using SalesForecastSystem.Core.Interfaces.Services;
 using SalesForecastSystem.Infrastructure.Data;
 
@@ -20,7 +21,7 @@ public sealed class ReportService(AppDbContext context) : IReportService
         var ranking = await (from order in context.SalesOrders.AsNoTracking()
             join item in context.SalesOrderItems.AsNoTracking() on order.SalesOrderId equals item.SalesOrderId
             join product in context.Products.AsNoTracking() on item.ProductId equals product.ProductId
-            where order.Status == "Completed" && order.OrderDate >= startDate && order.OrderDate < until && product.IsActive
+            where order.Status == SalesOrderStatus.Completed && order.OrderDate >= startDate && order.OrderDate < until && product.IsActive
             group item by item.ProductId into g
             select new { ProductId = g.Key, Quantity = g.Sum(i => (long)i.Quantity) })
             .OrderByDescending(r => r.Quantity).ThenBy(r => r.ProductId).ToListAsync(cancellationToken);
@@ -290,7 +291,7 @@ public sealed class ReportService(AppDbContext context) : IReportService
                 on product.CategoryId equals category.CategoryId
             join user in context.Users.AsNoTracking()
                 on order.CreatedByUserId equals user.UserId
-            where order.Status == "Completed"
+            where order.Status == SalesOrderStatus.Completed
             select new SalesLineRow
             {
                 SalesOrderId = order.SalesOrderId,

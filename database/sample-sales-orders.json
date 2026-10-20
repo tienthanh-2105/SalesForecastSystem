@@ -1,0 +1,186 @@
+{
+  "metadata": {
+    "name": "Bộ dữ liệu mẫu đơn bán hàng (Sales Orders) - Sales Forecast System",
+    "version": "1.0",
+    "date": "2026-10-18",
+    "currency": "VND",
+    "description": "Dữ liệu mẫu đơn hàng phục vụ kiểm thử luồng bán hàng, khấu trừ tồn kho, tính toán doanh thu/lợi nhuận và mô hình dự báo nhu cầu (Sales Forecasting)."
+  },
+  "customers": [
+    {
+      "customerId": 1,
+      "fullName": "Nguyễn Văn Tuấn",
+      "phoneNumber": "0912345678",
+      "email": "tuan.nguyen@example.com",
+      "address": "Số 15 Lê Văn Việt, Phường Hiệp Phú, TP. Thủ Đức, TP. Hồ Chí Minh"
+    },
+    {
+      "customerId": 2,
+      "fullName": "Trần Thị Mai Phương",
+      "phoneNumber": "0987654321",
+      "email": "phuong.tran@example.com",
+      "address": "Phòng 402, Chung cư Sunrise, 25 Hoàng Đạo Thúy, Cầu Giấy, Hà Nội"
+    },
+    {
+      "customerId": 3,
+      "fullName": "Lê Hoàng Long",
+      "phoneNumber": "0903112233",
+      "email": "long.le@example.com",
+      "address": "78 Nguyễn Trãi, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh"
+    }
+  ],
+  "orders": [
+    {
+      "orderNumber": "DH-20261010-HCM01",
+      "orderDate": "2026-10-10",
+      "warehouseRef": "KHO-0001",
+      "warehouseName": "Kho mẫu - TP. Hồ Chí Minh",
+      "customerName": "Nguyễn Văn Tuấn",
+      "customerPhone": "0912345678",
+      "shippingAddress": "Số 15 Lê Văn Việt, Phường Hiệp Phú, TP. Thủ Đức, TP. Hồ Chí Minh",
+      "status": "Completed",
+      "statusDescription": "Đã giao thành công (Đã trừ tồn kho)",
+      "notes": "Giao giờ hành chính, khách thanh toán chuyển khoản",
+      "items": [
+        {
+          "sku": "TGDD-PHN-IP17-256",
+          "productName": "iPhone 17 256GB",
+          "quantity": 1,
+          "unitPrice": 23990000,
+          "discount": 500000,
+          "lineTotal": 23490000
+        },
+        {
+          "sku": "TGDD-PCS-APL-IP17P-TW",
+          "productName": "Ốp lưng MagSafe iPhone 17 Pro TechWoven",
+          "quantity": 1,
+          "unitPrice": 1390000,
+          "discount": 90000,
+          "lineTotal": 1300000
+        }
+      ],
+      "totalAmount": 24790000,
+      "workflowTransitions": ["submit", "dispatch", "complete"]
+    },
+    {
+      "orderNumber": "DH-20261011-HN01",
+      "orderDate": "2026-10-11",
+      "warehouseRef": "KHO-0002",
+      "warehouseName": "Kho mẫu - Hà Nội",
+      "customerName": "Trần Thị Mai Phương",
+      "customerPhone": "0987654321",
+      "shippingAddress": "Phòng 402, Chung cư Sunrise, 25 Hoàng Đạo Thúy, Cầu Giấy, Hà Nội",
+      "status": "Delivering",
+      "statusDescription": "Đang giao hàng (Shipper đang vận chuyển)",
+      "notes": "Gọi điện trước khi giao 15 phút",
+      "items": [
+        {
+          "sku": "TGDD-LAP-HP245G10",
+          "productName": "HP 245 G10 R5 7530U (B8PF9AT) 8GB/512GB",
+          "quantity": 1,
+          "unitPrice": 19290000,
+          "discount": 300000,
+          "lineTotal": 18990000
+        },
+        {
+          "sku": "TGDD-MOU-LOG-M170",
+          "productName": "Chuột không dây Logitech M170",
+          "quantity": 1,
+          "unitPrice": 200000,
+          "discount": 20000,
+          "lineTotal": 180000
+        }
+      ],
+      "totalAmount": 19170000,
+      "workflowTransitions": ["submit", "dispatch"]
+    },
+    {
+      "orderNumber": "DH-20261012-HCM02",
+      "orderDate": "2026-10-12",
+      "warehouseRef": "KHO-0001",
+      "warehouseName": "Kho mẫu - TP. Hồ Chí Minh",
+      "customerName": "Lê Hoàng Long",
+      "customerPhone": "0903112233",
+      "shippingAddress": "78 Nguyễn Trãi, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh",
+      "status": "Pending",
+      "statusDescription": "Chờ xử lý (Đã xác nhận đơn, chuẩn bị đóng gói)",
+      "notes": "Đơn phụ kiện văn phòng",
+      "items": [
+        {
+          "sku": "TGDD-KEY-LOG-MK250",
+          "productName": "Bộ bàn phím chuột Bluetooth Logitech MK250",
+          "quantity": 2,
+          "unitPrice": 600000,
+          "discount": 50000,
+          "lineTotal": 1150000
+        },
+        {
+          "sku": "TGDD-PWB-XM-JP313",
+          "productName": "Pin sạc dự phòng Xmobile JP313 20000mAh 30W",
+          "quantity": 2,
+          "unitPrice": 690000,
+          "discount": 80000,
+          "lineTotal": 1300000
+        }
+      ],
+      "totalAmount": 2450000,
+      "workflowTransitions": ["submit"]
+    },
+    {
+      "orderNumber": "DH-20261015-HCM03",
+      "orderDate": "2026-10-15",
+      "warehouseRef": "KHO-0001",
+      "warehouseName": "Kho mẫu - TP. Hồ Chí Minh",
+      "customerName": "Phạm Quốc Bảo (Khách vãng lai)",
+      "customerPhone": "0934567890",
+      "shippingAddress": "200 Hai Bà Trưng, Phường Tân Định, Quận 1, TP. Hồ Chí Minh",
+      "status": "Draft",
+      "statusDescription": "Đơn nháp (Đang tư vấn và chỉnh sửa giỏ hàng)",
+      "notes": "Khách đang cân nhắc thêm tai nghe Sony",
+      "items": [
+        {
+          "sku": "TGDD-PHN-IP15-128",
+          "productName": "iPhone 15 128GB",
+          "quantity": 1,
+          "unitPrice": 18990000,
+          "discount": 0,
+          "lineTotal": 18990000
+        },
+        {
+          "sku": "TGDD-CAB-ANK-A8060",
+          "productName": "Cáp sạc nhanh Anker Zolo A8060 1.8m",
+          "quantity": 1,
+          "unitPrice": 180000,
+          "discount": 0,
+          "lineTotal": 180000
+        }
+      ],
+      "totalAmount": 19170000,
+      "workflowTransitions": []
+    },
+    {
+      "orderNumber": "DH-20261016-HN02",
+      "orderDate": "2026-10-16",
+      "warehouseRef": "KHO-0002",
+      "warehouseName": "Kho mẫu - Hà Nội",
+      "customerName": "Vũ Thu Trang",
+      "customerPhone": "0978123456",
+      "shippingAddress": "Số 88 Phố Huế, Hai Bà Trưng, Hà Nội",
+      "status": "Cancelled",
+      "statusDescription": "Đã hủy (Khách hủy đơn do bận công tác đột xuất)",
+      "notes": "Khách gọi hotline yêu cầu hủy đơn lúc 11:30",
+      "items": [
+        {
+          "sku": "TGDD-LAP-LNV-IP3-15ARP10",
+          "productName": "Lenovo IdeaPad Slim 3 15ARP10",
+          "quantity": 1,
+          "unitPrice": 21490000,
+          "discount": 490000,
+          "lineTotal": 21000000
+        }
+      ],
+      "totalAmount": 21000000,
+      "workflowTransitions": ["cancel"]
+    }
+  ]
+}

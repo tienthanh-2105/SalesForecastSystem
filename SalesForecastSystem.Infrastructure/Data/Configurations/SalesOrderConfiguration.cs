@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SalesForecastSystem.Infrastructure.Entities;
+using SalesForecastSystem.Core.Enums;
 
 namespace SalesForecastSystem.Infrastructure.Data.Configurations;
 
@@ -12,8 +13,7 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
         builder.HasKey(item => item.SalesOrderId);
         builder.Property(item => item.OrderNumber).IsUnicode(false).HasMaxLength(50);
         builder.Property(item => item.OrderDate).HasColumnType("date");
-        builder.Property(item => item.Status).IsUnicode(false).HasMaxLength(20);
-        builder.Property(item => item.Status).HasDefaultValue("Draft");
+        builder.Property(item => item.Status).HasConversion<string>().IsUnicode(false).HasMaxLength(20).HasDefaultValue(SalesOrderStatus.Draft);
         builder.Property(item => item.Notes).HasMaxLength(500);
         builder.Property(item => item.CustomerName).HasMaxLength(100);
         builder.Property(item => item.CustomerPhone).IsUnicode(false).HasMaxLength(15);

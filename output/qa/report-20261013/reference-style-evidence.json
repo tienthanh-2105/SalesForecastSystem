@@ -1,0 +1,98 @@
+{
+  "input": "E:\\Thuc_Tap_BE_Cty_Khang_Nghi\\DuAnThucTap\\SalesForecastSystem\\output\\docx\\Ph\u1ea1m Minh T\u00e0i_B\u00e1o c\u00e1o ng\u00e0y 12-10-2026.docx",
+  "fonts_by_char_count": {},
+  "direct_run_formatting_runs": 41,
+  "direct_paragraph_formatting_paragraphs": 43,
+  "heading_like_paragraphs_not_heading_style": [
+    {
+      "para_index": 1,
+      "text": "B\u00c1O C\u00c1O NG\u00c0Y 12/10/2026",
+      "style": "Normal"
+    },
+    {
+      "para_index": 3,
+      "text": "D\u1ef1 \u00e1n: H\u1ec7 th\u1ed1ng D\u1ef1 B\u00e1o Nhu C\u1ea7u B\u00e1n H\u00e0ng",
+      "style": "Normal"
+    },
+    {
+      "para_index": 13,
+      "text": "1. C\u00f4ng vi\u1ec7c trong ng\u00e0y",
+      "style": "Normal"
+    },
+    {
+      "para_index": 15,
+      "text": "2. Chi ti\u1ebft th\u1ef1c hi\u1ec7n",
+      "style": "Normal"
+    },
+    {
+      "para_index": 30,
+      "text": "H\u1ea1ng m\u1ee5c",
+      "style": "Normal"
+    },
+    {
+      "para_index": 31,
+      "text": "C\u00f4ng vi\u1ec7c",
+      "style": "Normal"
+    }
+  ],
+  "examples": {
+    "direct_paragraph_formatting": [
+      {
+        "para_index": 1,
+        "text": "B\u00c1O C\u00c1O NG\u00c0Y 12/10/2026",
+        "style": "Normal"
+      },
+      {
+        "para_index": 2,
+        "text": "",
+        "style": "Normal"
+      },
+      {
+        "para_index": 3,
+        "text": "D\u1ef1 \u00e1n: H\u1ec7 th\u1ed1ng D\u1ef1 B\u00e1o Nhu C\u1ea7u B\u00e1n H\u00e0ng",
+        "style": "Normal"
+      },
+      {
+        "para_index": 4,
+        "text": "H\u00f4m tr\u01b0\u1edbc: Ho\u00e0n thi\u1ec7n b\u00e1o c\u00e1o doanh thu, l\u1ee3i nhu\u1eadn v\u00e0 b\u1ed9 l\u1ecdc.",
+        "style": "Normal"
+      },
+      {
+        "para_index": 5,
+        "text": "H\u00f4m nay: T\u00e1ch trang ph\u00e2n t\u00edch b\u00e1n h\u00e0ng, ho\u00e0n thi\u1ec7n \u0111i\u1ec1u h\u01b0\u1edbng sidebar v\u00e0 tinh ch\u1ec9nh topbar.",
+        "style": "Normal"
+      }
+    ],
+    "direct_run_formatting": [
+      {
+        "para_index": 1,
+        "run_text": "B\u00c1O C\u00c1O NG\u00c0Y 12/10/2026",
+        "style": "Normal"
+      },
+      {
+        "para_index": 3,
+        "run_text": "D\u1ef1 \u00e1n: ",
+        "style": "Normal"
+      },
+      {
+        "para_index": 3,
+        "run_text": "H\u1ec7 th\u1ed1ng D\u1ef1 B\u00e1o Nhu C\u1ea7u B\u00e1n H\u00e0ng",
+        "style": "Normal"
+      },
+      {
+        "para_index": 4,
+        "run_text": "H\u00f4m tr\u01b0\u1edbc: ",
+        "style": "Normal"
+      },
+      {
+        "para_index": 4,
+        "run_text": "Ho\u00e0n thi\u1ec7n b\u00e1o c\u00e1o doanh thu, l\u1ee3i nhu\u1eadn v\u00e0 b\u1ed9 l\u1ecdc.",
+        "style": "Normal"
+      }
+    ]
+  },
+  "notes": [
+    "Direct formatting is not always wrong, but it often causes inconsistent output when templates change.",
+    "Heading-like paragraphs not using Heading styles can break TOC and accessibility."
+  ]
+}

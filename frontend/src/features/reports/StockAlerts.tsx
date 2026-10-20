@@ -15,7 +15,6 @@ const REMIND_AFTER_MS = 30 * 60_000;
 export function StockAlerts() {
   const [open, setOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(AUTO_CLOSE_MS / 1000);
   const [nextReminderAt, setNextReminderAt] = useState(0);
   const query = useQuery({
     queryKey: ["stock-alerts"],
@@ -31,23 +30,16 @@ export function StockAlerts() {
 
   useEffect(() => {
     if (!query.data?.items.length || open || Date.now() < nextReminderAt) return;
-    setSecondsLeft(AUTO_CLOSE_MS / 1000);
     setOpen(true);
-  }, [query.data?.checkedAtUtc, open, nextReminderAt]);
+  }, [query.data?.checkedAtUtc, query.data?.items.length, open, nextReminderAt]);
 
   useEffect(() => {
     if (!open) return;
-    const closesAt = Date.now() + AUTO_CLOSE_MS;
-    const tick = () => {
-      const remaining = Math.max(0, Math.ceil((closesAt - Date.now()) / 1000));
-      setSecondsLeft(remaining);
-      if (remaining === 0) {
-        setOpen(false);
-        setNextReminderAt(Date.now() + REMIND_AFTER_MS);
-      }
-    };
-    const timer = window.setInterval(tick, 250);
-    return () => window.clearInterval(timer);
+    const timer = window.setTimeout(() => {
+      setOpen(false);
+      setNextReminderAt(Date.now() + REMIND_AFTER_MS);
+    }, AUTO_CLOSE_MS);
+    return () => window.clearTimeout(timer);
   }, [open]);
 
   const close = () => {
@@ -75,7 +67,6 @@ export function StockAlerts() {
       </section>}
     </div>
     {open && query.data?.items.length ? <Modal title="Cảnh báo tồn kho" onClose={close} wide>
-      <p role="status" className="text-secondary">Tự đóng sau {secondsLeft} giây · nhắc lại sau 30 phút nếu cảnh báo còn tồn tại.</p>
       <p className="text-danger">{query.data.items.length} sản phẩm cần chú ý · {query.data.items.filter(p => p.isBestSeller).length} sản phẩm bán chạy · {query.data.items.filter(p => p.isOutOfStock).length} sản phẩm hết hàng</p>
       <div className="table-responsive"><table className="table table-sm">
         <thead><tr><th>Sản phẩm</th><th>Tồn kho</th><th>Ngưỡng tối thiểu</th><th>Đã bán / 30 ngày</th><th>Cảnh báo</th></tr></thead>

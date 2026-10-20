@@ -1,5 +1,7 @@
 namespace SalesForecastSystem.Core.DTOs.Users;
 
+using SalesForecastSystem.Core.Enums;
+
 public sealed record UserResponse(
     int UserId,
     string FullName,
@@ -7,7 +9,7 @@ public sealed record UserResponse(
     string? PhoneNumber,
     int RoleId,
     string RoleName,
-    string Status,
+    UserStatus Status,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
     string Code);

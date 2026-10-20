@@ -1,0 +1,70 @@
+{
+  "[Content_Types].xml": {
+    "size": 1841,
+    "sha256": "1d4afc79e33e6e5b10fbcd2fdae63a2707d6992585fcd60ad7c83087b6c32a02"
+  },
+  "_rels/.rels": {
+    "size": 590,
+    "sha256": "e19238d7a71fa7a2490776252686f70e2de6238c87cd509b5e3a3cc07c2ea4df"
+  },
+  "word/_rels/document.xml.rels": {
+    "size": 1356,
+    "sha256": "5834d86a81a3bb1f5ebdc7481ab9eb6ba704a8502a6f99fa3f68e4100e85d38c"
+  },
+  "word/document.xml": {
+    "size": 29892,
+    "sha256": "057ae8f2ab18bee8655fd69167cdfdc251e1db2f6b75cc3fa081aa356d0f290d"
+  },
+  "word/footnotes.xml": {
+    "size": 2722,
+    "sha256": "934dcafd92b90700c020dafb91c5a837a521df1357d37832dc5ada8346e7f30d"
+  },
+  "word/endnotes.xml": {
+    "size": 2716,
+    "sha256": "828869927c16240e977723679d18677ad836904e1cce82d6d4b61c510766a02b"
+  },
+  "word/theme/theme1.xml": {
+    "size": 7643,
+    "sha256": "b2295d3198893d2c03f5e584c749a15751b798aefdcd9bee2889f13903d68cb2"
+  },
+  "word/settings.xml": {
+    "size": 3247,
+    "sha256": "199e6e5f4ba727d1d86daeb817704c872fbd17c543cefd3e942839ca6be3f364"
+  },
+  "word/styles.xml": {
+    "size": 345318,
+    "sha256": "b6fa85a935935f246afbe8fcb3e525cc09b41d68f350b0c6c376c1bd98bebba2"
+  },
+  "word/numbering.xml": {
+    "size": 52647,
+    "sha256": "d4d2eeb2cf2b9aeb714d6ed1b57426dbba9a99759268e26e66ed45df373b94f3"
+  },
+  "customXml/_rels/item1.xml.rels": {
+    "size": 296,
+    "sha256": "80482f86e196171d66001e0e74d1900408a3aaf2463e54005d251b5f2db9a0b0"
+  },
+  "customXml/itemProps1.xml": {
+    "size": 341,
+    "sha256": "e4fc3bd5c4c298397678bdeee044c94caffb332457a06d9481f07f07600e1238"
+  },
+  "customXml/item1.xml": {
+    "size": 271,
+    "sha256": "ea4ce3d5ed85e35e81691ff034cd8344285918d65acd1c0b0d736ece97441406"
+  },
+  "docProps/core.xml": {
+    "size": 935,
+    "sha256": "847b8897aea02da95f3fc27a0c9d2ea74746e41ad8caab29eea84bebfd6b72fb"
+  },
+  "word/fontTable.xml": {
+    "size": 3084,
+    "sha256": "c5a819f41d6ff2319149e1d014b9f3e45e0a8a79cc4cd1f4b0fd6df8de984af1"
+  },
+  "word/webSettings.xml": {
+    "size": 646,
+    "sha256": "f298132aa4950ee6d98f082a701465260dbc52faee75e28a431636a4a5a71068"
+  },
+  "docProps/app.xml": {
+    "size": 1085,
+    "sha256": "6e703c06362540a4e9a15448a213026a19a5a175055a587abc9dc19a4cd0b184"
+  }
+}

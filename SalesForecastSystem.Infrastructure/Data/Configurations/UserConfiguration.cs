@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SalesForecastSystem.Infrastructure.Entities;
+using SalesForecastSystem.Core.Enums;
 
 namespace SalesForecastSystem.Infrastructure.Data.Configurations;
 
@@ -16,7 +17,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.Email).HasMaxLength(100).IsUnicode(false).IsRequired();
         builder.Property(user => user.PasswordHash).HasMaxLength(255).IsUnicode(false).IsRequired();
         builder.Property(user => user.PhoneNumber).HasMaxLength(15).IsUnicode(false);
-        builder.Property(user => user.Status).HasMaxLength(20).IsUnicode(false).IsRequired();
+        builder.Property(user => user.Status).HasConversion<string>().HasMaxLength(20).IsUnicode(false).IsRequired();
+        builder.Property(user => user.Status).HasDefaultValue(UserStatus.Active);
         builder.Property(user => user.CreatedAt).HasColumnType("datetime");
         builder.Property(user => user.UpdatedAt).HasColumnType("datetime");
         builder.HasIndex(user => user.Email).IsUnique();

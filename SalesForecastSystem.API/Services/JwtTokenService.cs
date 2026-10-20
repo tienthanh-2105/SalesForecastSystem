@@ -5,6 +5,7 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using SalesForecastSystem.Core.DTOs.Auth;
+using SalesForecastSystem.Core.Enums;
 using SalesForecastSystem.Core.Interfaces.Services;
 using SalesForecastSystem.Infrastructure.Data;
 using SalesForecastSystem.Infrastructure.Entities;
@@ -51,7 +52,7 @@ public sealed class JwtTokenService(
         if (session is null ||
             session.RevokedAt is not null ||
             session.ExpiresAt <= now ||
-            session.User.Status != UserStatuses.Active ||
+            session.User.Status != UserStatus.Active ||
             !session.User.Role.IsActive)
         {
             return null;

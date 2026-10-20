@@ -1,0 +1,38 @@
+[
+  {
+    "UserId": 26,
+    "RoleId": 1,
+    "Code": "ND-0001",
+    "FullName": "Nguyễn Văn Khánh",
+    "Email": "admin@salesforecast.com",
+    "PasswordHash": "$2a$12$c6YJTcvXnvPs.sfknjocuOONcNNI87QSPrQ1ziyGTOk1RaT6skDJC",
+    "PhoneNumber": null,
+    "Status": "Active",
+    "CreatedAt": "2026-09-14T17:51:22.187",
+    "UpdatedAt": null
+  },
+  {
+    "UserId": 335,
+    "RoleId": 2,
+    "Code": "ND-0002",
+    "FullName": "Trần Minh Huy",
+    "Email": "kho@salesforecast.com",
+    "PasswordHash": "$2a$12$UR6sV67.oSNDIEUW2Le68.IzedOScdDbMKOwEXVLHROGBtBX4vVTC",
+    "PhoneNumber": "0900000002",
+    "Status": "Active",
+    "CreatedAt": "2026-10-02T07:40:36.343",
+    "UpdatedAt": null
+  },
+  {
+    "UserId": 336,
+    "RoleId": 3,
+    "Code": "ND-0003",
+    "FullName": "Lê Hoàng Nam",
+    "Email": "banhang@salesforecast.com",
+    "PasswordHash": "$2a$12$JTV.gUFQfvERn5vAu9Xv1O9aTgoF5Tu2FIZu6x9Bg14daKMZEoK6C",
+    "PhoneNumber": "0900000003",
+    "Status": "Active",
+    "CreatedAt": "2026-10-02T07:40:36.343",
+    "UpdatedAt": null
+  }
+]

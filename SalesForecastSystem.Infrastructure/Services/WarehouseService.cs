@@ -63,7 +63,7 @@ public sealed class WarehouseService(AppDbContext context) : IWarehouseService
     {
         try { await context.SaveChangesAsync(cancellationToken); }
         catch (DbUpdateConcurrencyException) { return NotFound(); }
-        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 or 2627 })
+        catch (DbUpdateException exception) when (exception.GetBaseException() is SqlException { Number: 2601 or 2627 })
         { return ServiceResult<WarehouseResponse>.Failure(ServiceErrorType.Conflict, "Warehouse name already exists."); }
         return null;
     }

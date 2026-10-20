@@ -1,5 +1,7 @@
 # Kế hoạch chuyển trạng thái sang enum
 
+> Cập nhật 16/10/2026: Hoàn tất chuyển đổi enum cho SalesOrderStatus, PurchaseOrderStatus và UserStatus. Solution SalesForecastSystem.sln và các project test .NET 8 build đạt 100% (0 warning, 0 error). Cải tiến xử lý SqlException lồng nhau (GetBaseException) giúp toàn bộ bộ kiểm thử ExcelChecks (140 assertions) đạt tuyệt đối. Khắc phục query test frontend, 33/33 test Vitest và build production Vite đều đạt 100%. Đã tạo báo cáo ngày 16/10/2026.
+
 Ngày lập kế hoạch: 01/10/2026.
 
 ## Mục tiêu

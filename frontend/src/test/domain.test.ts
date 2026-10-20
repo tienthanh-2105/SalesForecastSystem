@@ -62,11 +62,20 @@ describe("quy tắc dữ liệu", () => {
   });
   it("phân quyền và trang mặc định", () => {
     expect(home("Admin")).toBe("/categories");
-    expect(home("WarehouseManager")).toBe("/warehouses");
+    expect(home("WarehouseManager")).toBe("/products");
     expect(home("SalesStaff")).toBe("/orders");
+    expect(allowed("WarehouseManager", "products")).toBe(true);
+    expect(allowed("WarehouseManager", "reports")).toBe(true);
+    expect(allowed("WarehouseManager", "warehouses")).toBe(false);
+    expect(allowed("WarehouseManager", "orders")).toBe(false);
+    expect(allowed("WarehouseManager", "customers")).toBe(false);
     expect(allowed("SalesStaff", "products")).toBe(false);
-    expect(allowed("WarehouseManager", "warehouses")).toBe(true);
+    expect(allowed("SalesStaff", "orders")).toBe(true);
+    expect(allowed("SalesStaff", "customers")).toBe(true);
+    expect(allowed("SalesStaff", "reports")).toBe(true);
     expect(allowed("Admin", "users")).toBe(true);
+    expect(allowed("Admin", "products")).toBe(true);
+    expect(allowed("Admin", "orders")).toBe(true);
   });
   it("session lưu đúng storage, idle và hạn token", () => {
     vi.useFakeTimers();

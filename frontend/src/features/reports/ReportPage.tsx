@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { date, localDate, money } from "../../lib/format";
 import { allPages } from "../../lib/api";
+import { readSession } from "../auth/session";
 import type { Category, Product as CatalogProduct, Warehouse } from "../../types";
 
 interface Totals { orderCount: number; quantitySold: number; revenue: number; costOfGoodsSold: number | null; grossProfit: number | null; missingCostQuantity: number }
@@ -44,13 +45,14 @@ function RevenueCharts({ points, period }: { points: TrendPoint[]; period: strin
 }
 
 export function ReportPage() {
+  const role = readSession()?.user?.role;
   const [from, setFrom] = useState(localDate().slice(0, 7) + "-01");
   const [to, setTo] = useState(localDate());
   const [period, setPeriod] = useState("Day");
   const [warehouse, setWarehouse] = useState("");
   const [product, setProduct] = useState("");
   const [category, setCategory] = useState("");
-  const [staffId, setStaffId] = useState("");
+  const [staffId] = useState("");
   const [profitQuery, setProfitQuery] = useState(`FromDate=${from}&ToDate=${to}&Period=Day`);
   const [trendQuery, setTrendQuery] = useState(`FromDate=${from}&ToDate=${to}&Period=Day`);
   const [error, setError] = useState("");
@@ -90,7 +92,7 @@ export function ReportPage() {
       {totals.missingCostQuantity > 0 && <div className="alert alert-warning m-3">Thiếu giá vốn cho {totals.missingCostQuantity} sản phẩm đã bán; lợi nhuận gộp chưa thể xác định đầy đủ.</div>}
       <div className="report-kpis">{[["Doanh thu", money(totals.revenue), "bi bi-currency-exchange"], ["Lợi nhuận gộp", currency(totals.grossProfit), "bi bi-graph-up-arrow"], ["Đơn thành công", totals.orderCount.toLocaleString("vi-VN"), "bi bi-receipt"], ["Sản phẩm đã bán", totals.quantitySold.toLocaleString("vi-VN"), "bi bi-box-seam"]].map(([label, value, icon]) => <article className="report-kpi" key={label}><span><i className={icon} aria-hidden="true" />{label}</span><strong>{value}</strong></article>)}</div>
       {trend.isFetching ? <p className="px-3" role="status">Đang tải biểu đồ...</p> : trend.error ? <div className="alert alert-danger mx-3" role="alert">Không tải được biểu đồ: {trend.error.message}</div> : Array.isArray(trend.data) && <RevenueCharts points={trend.data} period={period} />}
-      <section className="card report-table-card"><div className="report-table-toolbar"><button type="button" className="btn btn-primary btn-sm" onClick={() => window.print()}><i className="bi bi-printer me-1" />In báo cáo</button><span className="small text-secondary">{date(from)} – {date(to)} · Giá vốn theo {profit.data?.costMethod}</span></div>
+      <section className="card report-table-card"><div className="report-table-toolbar">{role === "Admin" && <button type="button" className="btn btn-primary btn-sm" onClick={() => window.print()}><i className="bi bi-printer me-1" />In báo cáo</button>}<span className="small text-secondary">{date(from)} – {date(to)} · Giá vốn theo {profit.data?.costMethod}</span></div>
         <div className="table-responsive"><table className="table report-data-table"><thead><tr><th>#</th><th>Thời gian</th><th>Đơn thành công</th><th>Số lượng bán</th><th>Doanh thu</th><th>Giá vốn</th><th>Lợi nhuận</th></tr></thead><tbody>
           <tr className="report-summary-row"><th colSpan={2}>Tổng</th><td>{totals.orderCount.toLocaleString("vi-VN")}</td><td>{totals.quantitySold.toLocaleString("vi-VN")}</td><td>{money(totals.revenue)}</td><td>{totals.costOfGoodsSold === null ? "Chưa xác định" : money(totals.costOfGoodsSold)}</td><td>{totals.grossProfit === null ? "Chưa xác định" : money(totals.grossProfit)}</td></tr>
           <tr className="report-summary-row"><th colSpan={2}>Trung bình / kỳ</th><td>{average(totals.orderCount)}</td><td>{average(totals.quantitySold)}</td><td>{average(totals.revenue)}</td><td>{totals.costOfGoodsSold === null ? "Chưa xác định" : average(totals.costOfGoodsSold)}</td><td>{totals.grossProfit === null ? "Chưa xác định" : average(totals.grossProfit)}</td></tr>

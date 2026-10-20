@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SalesForecastSystem.Infrastructure.Entities;
+using SalesForecastSystem.Core.Enums;
 
 namespace SalesForecastSystem.Infrastructure.Data.Configurations;
 
@@ -12,7 +13,7 @@ public sealed class PurchaseOrderConfiguration : IEntityTypeConfiguration<Purcha
         builder.HasKey(x => x.PurchaseOrderId);
         builder.Property(x => x.OrderNumber).IsUnicode(false).HasMaxLength(50);
         builder.Property(x => x.OrderDate).HasColumnType("date");
-        builder.Property(x => x.Status).IsUnicode(false).HasMaxLength(20).HasDefaultValue("Draft");
+        builder.Property(x => x.Status).HasConversion<string>().IsUnicode(false).HasMaxLength(20).HasDefaultValue(PurchaseOrderStatus.Draft);
         builder.Property(x => x.Notes).HasMaxLength(500);
         builder.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
         builder.Property(x => x.RowVersion).IsRowVersion();

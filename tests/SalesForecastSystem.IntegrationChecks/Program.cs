@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SalesForecastSystem.Core.Enums;
 using SalesForecastSystem.Infrastructure.Data;
 using SalesForecastSystem.Infrastructure.Entities;
 
@@ -58,6 +59,9 @@ async Task StartApi()
     start.Environment["SeedAdmin__Email"] = "";
     start.Environment["SeedAdmin__Password"] = "";
     start.Environment["Logging__LogLevel__Default"] = "Warning";
+    var pythonExecutable = Environment.GetEnvironmentVariable("PYTHON_EXECUTABLE")
+        ?? (File.Exists(@"C:\msys64\ucrt64\bin\python.exe") ? @"C:\msys64\ucrt64\bin\python.exe" : "python");
+    start.Environment["Forecasting__PythonExecutable"] = pythonExecutable;
     api = Process.Start(start) ?? throw new Exception("Cannot start API.");
     api.OutputDataReceived += (_, e) => { if (e.Data != null) lock (apiLog) apiLog.Add(e.Data); };
     api.ErrorDataReceived += (_, e) => { if (e.Data != null) lock (apiLog) apiLog.Add(e.Data); };
@@ -146,7 +150,7 @@ try
             FullName = "Integration test " + roleName,
             Email = $"{tag}-{roleName}@example.invalid".ToLowerInvariant(),
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password, 4),
-            Status = UserStatuses.Active,
+            Status = UserStatus.Active,
             CreatedAt = DateTime.UtcNow
         };
         accounts.Add(roleName, user);
@@ -193,7 +197,7 @@ try
     }
     await Check("anonymous role endpoint", HttpMethod.Get, "/api/access-check/admin", 401);
     var admin = tokens["Admin"];
-    var taxCode = tag[^16..];
+    var taxCode = "01" + RandomNumberGenerator.GetInt32(10000000, 99999999).ToString("D8");
     var warehouseManager = tokens["WarehouseManager"];
     var salesStaff = tokens["SalesStaff"];
     await Check("reports anonymous", HttpMethod.Get, "/api/reports/sales-summary", 401);
@@ -574,7 +578,7 @@ try
             throw new Exception("Empty forecast dataset is not continuous or split chronologically.");
     }
     var transactionSupplier = await Check("transaction supplier", HttpMethod.Post, "/api/suppliers", 201,
-        warehouseManager, new { name = tag + "-transaction-supplier" });
+        warehouseManager, new { name = tag + "-transaction-supplier", taxCode = "02" + RandomNumberGenerator.GetInt32(10000000, 99999999).ToString("D8") });
     var transactionSupplierId = transactionSupplier.GetProperty("supplierId").GetInt32();
     var purchaseBody = new { orderNumber = "PO-API-" + tag, warehouseId = transactionWarehouseId,
         supplierId = transactionSupplierId, orderDate = DateTime.UtcNow.Date };
@@ -753,10 +757,10 @@ try
     await Check("delete second", HttpMethod.Delete, $"/api/categories/{parentId}", 200, admin);
 
     var warehouseManagerId = accounts["WarehouseManager"].UserId;
-    await db.Users.Where(x => x.UserId == warehouseManagerId).ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, UserStatuses.Locked));
+    await db.Users.Where(x => x.UserId == warehouseManagerId).ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, UserStatus.Locked));
     await Check("locked existing session", HttpMethod.Get, "/api/auth/me", 401, tokens["WarehouseManager"]);
     await Check("locked login", HttpMethod.Post, "/api/auth/login", 401, body: new { email = accounts["WarehouseManager"].Email, password });
-    await db.Users.Where(x => x.UserId == warehouseManagerId).ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, UserStatuses.Active));
+    await db.Users.Where(x => x.UserId == warehouseManagerId).ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, UserStatus.Active));
     await db.Users.Where(x => x.UserId == warehouseManagerId).ExecuteUpdateAsync(s => s.SetProperty(x => x.RoleId, accounts["SalesStaff"].RoleId));
     await Check("changed role old token", HttpMethod.Get, "/api/auth/me", 401, tokens["WarehouseManager"]);
     await db.Users.Where(x => x.UserId == warehouseManagerId).ExecuteUpdateAsync(s => s.SetProperty(x => x.RoleId, accounts["WarehouseManager"].RoleId));
@@ -784,7 +788,7 @@ try
             otherSession, new { name = tag + "-flow-warehouse" });
         var flowWarehouseId = flowWarehouse.GetProperty("warehouseId").GetInt32();
         var flowSupplier = await Check("flow supplier", HttpMethod.Post, "/api/suppliers", 201,
-            otherSession, new { name = tag + "-flow-supplier" });
+            otherSession, new { name = tag + "-flow-supplier", taxCode = "03" + RandomNumberGenerator.GetInt32(10000000, 99999999).ToString("D8") });
         var flowSupplierId = flowSupplier.GetProperty("supplierId").GetInt32();
         var flowCustomer = await Check("flow customer", HttpMethod.Post, "/api/customers", 201,
             otherSession, new { fullName = tag + " customer", phoneNumber = "0901234567", address = "Old address" });
@@ -906,6 +910,25 @@ try
             forecastPoints[3].GetProperty("dataStatus").GetString() != "NoSale" ||
             forecastPoints[3].GetProperty("datasetSplit").GetString() != "Validation")
             throw new Exception("Forecast dataset aggregation, zero filling, inventory status, or chronological split is incorrect.");
+        var emptyForecastFrom = DateTime.UtcNow.Date.AddDays(-10).ToString("yyyy-MM-dd");
+        var emptyForecastTo = DateTime.UtcNow.Date.AddDays(-5).ToString("yyyy-MM-dd");
+        await Check("flow forecast empty sales rejected", HttpMethod.Post, "/api/forecasts", 400,
+            otherSession, new { productId = flowProductId, warehouseId = flowWarehouseId,
+                fromDate = emptyForecastFrom, toDate = emptyForecastTo, forecastDays = 7, validationPercentage = 20 });
+        var flowForecastRun = await Check("flow forecast run", HttpMethod.Post, "/api/forecasts", 201,
+            otherSession, new { productId = flowProductId, warehouseId = flowWarehouseId,
+                fromDate = flowForecastFrom, toDate = flowForecastTo, forecastDays = 7, validationPercentage = 40 });
+        var forecastRunId = flowForecastRun.GetProperty("forecastRunId").GetInt64();
+        if (forecastRunId <= 0 ||
+            flowForecastRun.GetProperty("status").GetString() != "Completed" ||
+            string.IsNullOrEmpty(flowForecastRun.GetProperty("modelName").GetString()) ||
+            flowForecastRun.GetProperty("forecasts").GetArrayLength() != 7)
+            throw new Exception("Forecast run response is invalid.");
+        var savedForecast = await Check("flow get forecast run", HttpMethod.Get,
+            $"/api/forecasts/{forecastRunId}", 200, otherSession);
+        if (savedForecast.GetProperty("forecastRunId").GetInt64() != forecastRunId ||
+            savedForecast.GetProperty("forecasts").GetArrayLength() != 7)
+            throw new Exception("Saved forecast run is invalid.");
         async Task<long> PrepareConcurrentSale(int number)
         {
             var draft = await Check($"flow concurrent draft {number}", HttpMethod.Post, "/api/sales", 201,
